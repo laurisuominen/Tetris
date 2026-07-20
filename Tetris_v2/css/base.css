@@ -1,0 +1,66 @@
+/** Reset, typography baseline, and global focus treatment. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+* { margin: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;             /* spec §11: single screen, no scrolling */
+  overscroll-behavior: none;    /* stops mobile pull-to-refresh killing a game */
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3 {
+  line-height: var(--lh-tight);
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+canvas { display: block; }
+
+/* Focus is never removed — only replaced with something clearer. */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+:focus:not(:focus-visible) { outline: none; }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Shown only when the page is opened over file:// — see js/file-guard.js */
+.file-guard {
+  margin: 0;
+  padding: var(--sp-8) var(--sp-5);
+  max-width: 60ch;
+  font-family: var(--font-num);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-base);
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
