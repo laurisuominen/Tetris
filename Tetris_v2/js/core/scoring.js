@@ -20,7 +20,7 @@ const TSPIN_MINI_POINTS = [100, 100, 200, 200];
  * The test suite pins levelFor(50) === 6 to keep that from returning.
  */
 export function levelFor(totalLines) {
-  return Math.floor(totalLines / 10) + 1;
+  return Math.floor(totalLines / 5) + 1;
 }
 
 /**

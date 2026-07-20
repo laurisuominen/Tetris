@@ -98,6 +98,10 @@ on(qs('#btn-settings'), 'click', () => {
   settingsUI.show();
 });
 
+on(qs('#btn-scores'), 'click', () => {
+  scoresView.showLeaderboardOnly();
+});
+
 /* --- render ---------------------------------------------------------------- */
 
 engine.setRenderer((state) => {

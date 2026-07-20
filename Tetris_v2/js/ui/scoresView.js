@@ -72,16 +72,27 @@ export function createScoresView(overlays) {
 
   function showLeaderboardOnly(state) {
     const container = el('div');
-    container.appendChild(el('p', { text: `Score ${state.score.toLocaleString()}` }));
-    container.appendChild(el('p', { text: `Level ${state.level}   Lines ${state.lines}`, attrs: { style: 'color: var(--text-muted); margin-bottom: 16px;' } }));
+    if (state) {
+      container.appendChild(el('p', { text: `Score ${state.score.toLocaleString()}` }));
+      container.appendChild(el('p', { text: `Level ${state.level}   Lines ${state.lines}`, attrs: { style: 'color: var(--text-muted); margin-bottom: 16px;' } }));
+    }
     container.appendChild(renderLeaderboard());
 
-    overlays.open('gameover', {
-      title: 'Game Over',
+    let buttons;
+    if (state) {
+      buttons = [overlays.button('Play again', 'restart')];
+    } else {
+      const closeBtn = el('button', { text: 'Close', className: 'btn', attrs: { type: 'button' } });
+      closeBtn.onclick = () => overlays.close();
+      buttons = [closeBtn];
+    }
+
+    overlays.open('leaderboard', {
+      title: state ? 'Game Over' : 'High Scores',
       body: container,
-      buttons: [overlays.button('Play again', 'restart')]
+      buttons
     });
   }
 
-  return { showGameOver };
+  return { showGameOver, showLeaderboardOnly };
 }
