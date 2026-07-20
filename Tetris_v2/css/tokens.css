@@ -95,7 +95,9 @@
   /* Layout — --cell-size is written by JS after the device-pixel snap. */
   --cell-size:    30px;
   --panel-w:      clamp(8rem, 14vw, 12rem);
-  --bg-intensity: 0.6;
+  /* Backdrop opacity. Combines multiplicatively with the scrim alpha in
+     backgrounds.css — see the scrim budget note there before lowering this. */
+  --bg-intensity: 0.9;
 }
 
 /* Exact spec §3 palette, behind a setting for players who want the classic look. */

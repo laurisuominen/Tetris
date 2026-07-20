@@ -3,12 +3,24 @@ import { mulberry32 } from '../core/rng.js';
 export function createBackgrounds({ canvasA, canvasB }) {
   let currentA = true;
 
+  /**
+   * Backdrop generators.
+   *
+   * Lightness sits around 0.34-0.58. That is brighter than it looks in
+   * isolation, because the scrim and --bg-intensity mute it multiplicatively
+   * before it reaches the screen — see the scrim budget note in
+   * css/backgrounds.css. Dropping these back into the 0.2s makes the whole
+   * backdrop read as flat black.
+   *
+   * Internal contrast (dots, bands, rays) needs to be generous for the same
+   * reason: a 0.1-alpha detail survives as roughly 0.05 after muting.
+   */
   const generators = [
     // 0: Dot matrix
     (ctx, width, height, rand) => {
-      ctx.fillStyle = 'oklch(0.3 0.05 265)';
+      ctx.fillStyle = 'oklch(0.36 0.06 265)';
       ctx.fillRect(0, 0, width, height);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
       const spacing = 40;
       for (let x = 0; x < width; x += spacing) {
         for (let y = 0; y < height; y += spacing) {
@@ -23,8 +35,8 @@ export function createBackgrounds({ canvasA, canvasB }) {
       const r = Math.max(width, height);
       const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
       const hue = 200 + rand() * 100;
-      gradient.addColorStop(0, `oklch(0.5 0.1 ${hue})`);
-      gradient.addColorStop(1, 'oklch(0.3 0.05 265)');
+      gradient.addColorStop(0, `oklch(0.58 0.13 ${hue})`);
+      gradient.addColorStop(1, 'oklch(0.30 0.05 265)');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, height);
     },
@@ -33,11 +45,11 @@ export function createBackgrounds({ canvasA, canvasB }) {
       const hue1 = 200 + rand() * 60;
       const hue2 = hue1 + 60;
       const gradient = ctx.createLinearGradient(0, 0, 0, height);
-      gradient.addColorStop(0, `oklch(0.4 0.1 ${hue1})`);
-      gradient.addColorStop(1, `oklch(0.45 0.12 ${hue2})`);
+      gradient.addColorStop(0, `oklch(0.44 0.12 ${hue1})`);
+      gradient.addColorStop(1, `oklch(0.52 0.14 ${hue2})`);
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, height);
-      ctx.fillStyle = 'rgba(0,0,0,0.15)';
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
       for (let y = 0; y < height; y += 30) {
         if (rand() > 0.5) ctx.fillRect(0, y, width, 15);
       }
@@ -45,9 +57,9 @@ export function createBackgrounds({ canvasA, canvasB }) {
     // 3: Grid rays
     (ctx, width, height, rand) => {
       const hue = 260 + rand() * 40;
-      ctx.fillStyle = `oklch(0.35 0.08 ${hue})`;
+      ctx.fillStyle = `oklch(0.40 0.09 ${hue})`;
       ctx.fillRect(0, 0, width, height);
-      ctx.strokeStyle = `oklch(0.22 0.04 ${hue})`;
+      ctx.strokeStyle = `oklch(0.26 0.05 ${hue})`;
       ctx.lineWidth = 2;
       ctx.beginPath();
       const cx = width / 2;

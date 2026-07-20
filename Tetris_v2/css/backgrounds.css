@@ -2,10 +2,17 @@
  * Procedural level backdrop.
  *
  * Two canvases cross-fade on level up: one is visible, the other is generated
- * off-screen and then faded in. The scrim above them is fixed and is one of
- * three stacked guarantees that a generator can never hurt gameplay contrast
- * (the others being the generators' constrained lightness range and the
- * playfield's own opaque slab).
+ * off-screen and then faded in.
+ *
+ * SCRIM BUDGET — read before changing these numbers. Muting is multiplicative:
+ * the generator's visible contribution is (1 - scrimAlpha) * --bg-intensity.
+ * An earlier version stacked a 0.72 scrim on top of 0.6 opacity and dark
+ * generators, leaving 16.8% of an already-dark colour and rendering the
+ * backdrop indistinguishable from plain black.
+ *
+ * Gameplay contrast does NOT depend on this scrim — the playfield has its own
+ * 92%-opaque slab and the panels are fully opaque. The scrim only softens the
+ * backdrop behind them, so it can stay light.
  */
 
 .backdrop {
@@ -27,7 +34,7 @@
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: oklch(0.14 0.012 265 / 0.72);
+  background: oklch(0.14 0.012 265 / 0.35);
 }
 
 /* Intensity "Off" skips generation entirely in JS; this just guarantees nothing
