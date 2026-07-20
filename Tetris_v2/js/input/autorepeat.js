@@ -37,7 +37,7 @@ export function createAutoRepeat({ das = DAS_MS, arr = ARR_MS } = {}) {
         direction = held;
         elapsed = 0;
         charged = false;
-        return held;   // the initial move happens on press
+        return 0;   // the initial move is handled by the event queue
       }
 
       elapsed += dt;
