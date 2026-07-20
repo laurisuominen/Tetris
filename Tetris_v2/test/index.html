@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tetris core tests</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/base.css">
+<style>
+  html, body { overflow: auto; }
+  body { padding: var(--sp-6); }
+  .wrap { max-width: 64rem; margin: 0 auto; }
+  h1 { font-size: var(--fs-xl); margin-bottom: var(--sp-2); }
+  .summary { font-family: var(--font-num); margin-bottom: var(--sp-5); }
+  .summary[data-ok="true"]  { color: var(--success); }
+  .summary[data-ok="false"] { color: var(--danger); }
+  ol { list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--sp-1); }
+  li { font-family: var(--font-num); font-size: var(--fs-sm); }
+  .pass { color: var(--text-muted); }
+  .fail { color: var(--danger); }
+  .fail .msg { display: block; padding-left: var(--sp-4); color: var(--text-secondary); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Tetris core tests</h1>
+  <p class="summary" id="summary">running…</p>
+  <ol id="results"></ol>
+</div>
+
+<script type="module">
+import { run } from './harness.js';
+import './core.test.js';
+
+const results = document.getElementById('results');
+const summary = document.getElementById('summary');
+
+const { passed, failures, total } = run({
+  onResult({ label, ok, error }) {
+    const li = document.createElement('li');
+    li.className = ok ? 'pass' : 'fail';
+    li.textContent = `${ok ? 'pass' : 'FAIL'}  ${label}`;
+    if (!ok) {
+      const msg = document.createElement('span');
+      msg.className = 'msg';
+      msg.textContent = error.message;
+      li.appendChild(msg);
+    }
+    results.appendChild(li);
+  }
+});
+
+const ok = failures.length === 0;
+summary.dataset.ok = String(ok);
+summary.textContent = `${passed}/${total} passing`;
+
+// Lets a headless browser read the outcome without parsing the DOM.
+document.title = ok ? `PASS ${passed}/${total}` : `FAIL ${failures.length}`;
+</script>
+</body>
+</html>
