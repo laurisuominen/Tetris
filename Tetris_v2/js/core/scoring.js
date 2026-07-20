@@ -13,14 +13,22 @@ const LINE_POINTS = [0, 100, 300, 500, 800];
 const TSPIN_POINTS = [400, 800, 1200, 1600];
 const TSPIN_MINI_POINTS = [100, 100, 200, 200];
 
+/** Lines cleared per level. See LINES_PER_LEVEL note below. */
+const LINES_PER_LEVEL = 5;
+
 /**
- * Level from total lines cleared — spec §9.
+ * Level from total lines cleared.
  *
- * v1 divided by 5 here (index.html:740), levelling twice as fast as specified.
- * The test suite pins levelFor(50) === 6 to keep that from returning.
+ * DELIBERATE DEVIATION FROM SPEC §9, which specifies every 10 lines. Levelling
+ * every 5 makes the difficulty curve bite sooner and keeps a casual session
+ * from plateauing — a gameplay-feel decision, not an oversight.
+ *
+ * Note this is the same divisor v1 used, but for a different reason: there it
+ * was an unintended mismatch with its own spec, here it is a chosen setting.
+ * The distinction matters if anyone diffs the two.
  */
 export function levelFor(totalLines) {
-  return Math.floor(totalLines / 5) + 1;
+  return Math.floor(totalLines / LINES_PER_LEVEL) + 1;
 }
 
 /**

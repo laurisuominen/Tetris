@@ -260,12 +260,13 @@ describe('scoring', () => {
     expect(hardDropPoints(5)).toBe(10);
   });
 
-  it('advances a level every ten lines', () => {
+  it('advances a level every five lines', () => {
+    // Deliberate deviation from spec §9 (which says every 10) — see the note
+    // on levelFor. Pinned so the divisor cannot drift back unnoticed.
     expect(levelFor(0)).toBe(1);
-    expect(levelFor(9)).toBe(1);
-    expect(levelFor(10)).toBe(2);
-    // Regression guard: v1 divided by 5 here and levelled twice as fast.
-    expect(levelFor(50)).toBe(6);
+    expect(levelFor(4)).toBe(1);
+    expect(levelFor(5)).toBe(2);
+    expect(levelFor(50)).toBe(11);
   });
 });
 

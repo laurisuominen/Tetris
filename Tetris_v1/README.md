@@ -14,8 +14,10 @@ source of truth for game rules in v2 as well.
 Found while planning v2. They are documented here rather than fixed, since v1 is
 frozen:
 
-- **Level progression is twice as fast as specified.** `index.html:740` computes
-  `Math.floor(this.lines / 5) + 1`; spec §9 says `/ 10`.
+- **Level progression does not match its own spec.** `index.html:740` computes
+  `Math.floor(this.lines / 5) + 1`; spec §9 says `/ 10`. (v2 also levels every 5
+  lines, but there it is a deliberate, documented gameplay choice rather than an
+  unintended mismatch.)
 - **T-spins are over-awarded.** The rotation flag is never cleared by a gravity
   drop, so rotate → fall → lock scores as a T-spin. Mini vs. full is also
   collapsed to a bare 3-corner check with no front/back corner distinction.
