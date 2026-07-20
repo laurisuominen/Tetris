@@ -1,0 +1,24 @@
+# Dependencies (none currently, but guard against future drift)
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.vscode/
+.idea/
+
+# OneDrive sync artifacts — this repo lives in a synced folder
+*-conflict*
+*.tmp
