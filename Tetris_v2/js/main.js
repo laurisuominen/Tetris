@@ -20,7 +20,14 @@ import { createRenderer } from './render/renderer.js';
 import { createPreviews } from './render/previews.js';
 import { createHud } from './ui/hud.js';
 import { createOverlays } from './ui/overlays.js';
-import { qs, setText } from './util/dom.js';
+import { createSettingsUI } from './ui/settings.js';
+import { createScoresView } from './ui/scoresView.js';
+import { createBackgrounds } from './ui/background.js';
+import { createA11y } from './ui/a11y.js';
+import { createTouch } from './input/touch.js';
+import { createSynth } from './audio/synth.js';
+import { createSfx } from './audio/sfx.js';
+import { qs, setText, on } from './util/dom.js';
 
 const palette = createPalette();
 const keyboard = createKeyboard();
@@ -43,6 +50,14 @@ const hud = createHud();
 const engine = createEngine({ input: keyboard });
 const liveRegion = qs('#live-region');
 
+const a11y = createA11y({ liveRegion });
+const backgrounds = createBackgrounds({
+  canvasA: qs('#bg-a'),
+  canvasB: qs('#bg-b')
+});
+const synth = createSynth();
+createTouch(engine);
+
 const overlays = createOverlays({
   onAction(action) {
     switch (action) {
@@ -62,6 +77,25 @@ const overlays = createOverlays({
         break;
     }
   }
+});
+
+const scoresView = createScoresView(overlays);
+
+const settingsUI = createSettingsUI(overlays, (settings) => {
+  document.documentElement.setAttribute('data-motion', settings.motion);
+  document.documentElement.setAttribute('data-palette', settings.classicColors ? 'classic' : 'default');
+  document.documentElement.style.setProperty('--ghost-fill-alpha', settings.ghostPiece ? '0.10' : '0');
+  document.documentElement.style.setProperty('--ghost-stroke-alpha', settings.ghostPiece ? '0.55' : '0');
+  
+  palette.refresh();
+  previews.invalidate();
+  renderer.invalidateBoard(); // ensures layers redraw with new colors
+});
+
+createSfx(engine, synth, settingsUI.getSettings);
+
+on(qs('#btn-settings'), 'click', () => {
+  settingsUI.show();
 });
 
 /* --- render ---------------------------------------------------------------- */
@@ -87,29 +121,33 @@ engine.on('clear', ({ rows, label }) => {
     renderer.invalidateBoard();
   }
   hud.showBadge(label);
-  if (label) setText(liveRegion, label);
+  if (label) a11y.announce(label);
 });
 
 engine.on('levelUp', ({ level }) => {
   hud.flashLevel();
-  setText(liveRegion, `Level ${level}`);
+  a11y.announce(`Level ${level}`);
+  backgrounds.drawLevel(level);
 });
 
 engine.on('topOut', () => {
-  setText(liveRegion, 'Game over');
+  a11y.announce('Game over');
 });
 
 engine.on('changed', (state) => {
-  if (state.fsm === STATES.GAME_OVER && overlays.kind !== 'gameover') {
-    overlays.showGameOver(state);
-  } else if (state.fsm === STATES.PAUSED && overlays.kind !== 'paused') {
+  if (state.fsm === STATES.GAME_OVER && overlays.kind !== 'gameover' && overlays.kind !== 'gameover_new_highscore') {
+    scoresView.showGameOver(state);
+  } else if (state.fsm === STATES.PAUSED && overlays.kind !== 'paused' && overlays.kind !== 'settings') {
     overlays.showPaused();
   }
 });
 
 engine.on('pause', ({ paused, state }) => {
-  if (paused) overlays.showPaused();
-  else if (state.fsm === STATES.PLAYING) overlays.close();
+  if (paused) {
+    if (overlays.kind !== 'settings') overlays.showPaused();
+  } else if (state.fsm === STATES.PLAYING) {
+    overlays.close();
+  }
 });
 
 /* --- boot ------------------------------------------------------------------ */

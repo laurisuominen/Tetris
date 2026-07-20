@@ -42,7 +42,14 @@ export function createOverlays({ onAction }) {
     lastFocused = document.activeElement;
 
     setText(titleEl, title);
-    setText(bodyEl, body ?? '');
+    if (typeof body === 'string') {
+      setText(bodyEl, body);
+    } else if (body instanceof Node) {
+      clear(bodyEl);
+      bodyEl.appendChild(body);
+    } else {
+      clear(bodyEl);
+    }
     setHidden(bodyEl, !body);
 
     clear(actionsEl);
@@ -117,6 +124,9 @@ export function createOverlays({ onAction }) {
         case STATES.GAME_OVER: this.showGameOver(state); break;
         default:               if (currentKind) close();
       }
-    }
+    },
+    
+    open,
+    button
   };
 }
