@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lauri's Browser Tetris</title>
+    <style>
+        :root {
+            --bg-color: #111;
+            --panel-bg: #222;
+            --text-color: #fff;
+            --grid-color: #333;
+            --cell-size: 30px;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-container {
+            display: flex;
+            gap: 20px;
+            background-color: var(--panel-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 140px;
+        }
+
+        .panel-box {
+            background-color: #1a1a1a;
+            border: 2px solid #444;
+            border-radius: 5px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .panel-box h2 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            text-transform: uppercase;
+            color: #aaa;
+        }
+
+        .value-display {
+            font-size: 20px;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        #playfield-container {
+            position: relative;
+            width: calc(10 * var(--cell-size));
+            height: calc(20 * var(--cell-size));
+            border: 2px solid #555;
+            background-color: #000;
+        }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+        }
+
+        /* Grid background for the main canvas */
+        #playfield-canvas {
+            background-image:
+                linear-gradient(to right, #222 1px, transparent 1px),
+                linear-gradient(to bottom, #222 1px, transparent 1px);
+            background-size: var(--cell-size) var(--cell-size);
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            display: none;
+            text-align: center;
+        }
+
+        .overlay.active {
+            display: flex;
+        }
+
+        .overlay h1 {
+            margin: 0 0 20px 0;
+            font-size: 32px;
+            text-transform: uppercase;
+            color: #fff;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        .overlay p {
+            margin: 5px 0;
+            color: #ccc;
+            font-size: 14px;
+        }
+
+        #b2b-display {
+            color: #f0a000;
+            font-weight: bold;
+            font-size: 14px;
+            min-height: 20px;
+            margin-top: 10px;
+        }
+
+        .controls-help {
+            margin-top: auto;
+            color: #888;
+            font-size: 12px;
+            text-align: left;
+            padding-left: 10px;
+        }
+
+        .controls-help p {
+            margin: 3px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-container">
+        <!-- Left Panel: Hold & Controls -->
+        <div class="side-panel">
+            <div class="panel-box">
+                <h2>Hold</h2>
+                <canvas id="hold-canvas" width="120" height="120"></canvas>
+            </div>
+
+            <div class="controls-help">
+                <p><b>&larr; &rarr;</b> Move</p>
+                <p><b>&darr;</b> Soft Drop</p>
+                <p><b>Space</b> Hard Drop</p>
+                <p><b>&uarr; / X</b> Rot CW</p>
+                <p><b>Z / Ctrl</b> Rot CCW</p>
+                <p><b>A</b> Rot 180&deg;</p>
+                <p><b>C / Shift</b> Hold</p>
+                <p><b>P / Esc</b> Pause</p>
+            </div>
+        </div>
+
+        <!-- Center Panel: Playfield -->
+        <div id="playfield-container">
+            <!-- 300x600 for 10x20 grid of 30px cells -->
+            <canvas id="playfield-canvas" width="300" height="600"></canvas>
+
+            <div id="start-overlay" class="overlay active">
+                <h1>TETRIS</h1>
+                <p>Press ENTER to start</p>
+            </div>
+
+            <div id="pause-overlay" class="overlay">
+                <h1>PAUSED</h1>
+                <p>Press P or Esc to resume</p>
+            </div>
+
+            <div id="gameover-overlay" class="overlay">
+                <h1>GAME OVER</h1>
+                <p>Score: <span id="final-score">0</span></p>
+                <br>
+                <p>Press ENTER to restart</p>
+            </div>
+        </div>
+
+        <!-- Right Panel: Next & Stats -->
+        <div class="side-panel">
+            <div class="panel-box">
+                <h2>Next</h2>
+                <canvas id="next-canvas" width="120" height="400"></canvas>
+            </div>
+
+            <div class="panel-box">
+                <h2>Score</h2>
+                <div id="score-display" class="value-display">0</div>
+                <div id="b2b-display"></div>
+            </div>
+            <div class="panel-box">
+                <h2>Level</h2>
+                <div id="level-display" class="value-display">1</div>
+            </div>
+            <div class="panel-box">
+                <h2>Lines</h2>
+                <div id="lines-display" class="value-display">0</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONSTANTS ---
+        const COLS = 10;
+        const ROWS_VISIBLE = 20;
+        const ROWS_BUFFER = 20;
+        const ROWS = ROWS_VISIBLE + ROWS_BUFFER; // 40
+        const CELL_SIZE = 30;
+
+        const COLORS = {
+            I: '#00f0f0', // cyan
+            O: '#f0f000', // yellow
+            T: '#a000f0', // purple
+            S: '#00f000', // green
+            Z: '#f00000', // red
+            J: '#0000f0', // blue
+            L: '#f0a000'  // orange
+        };
+
+        // Bounding boxes match SRS Guideline
+        // Matrix represents row-major, 0 is empty, 1 is block
+        const SHAPES = {
+            I: [
+                [0, 0, 0, 0],
+                [1, 1, 1, 1],
+                [0, 0, 0, 0],
+                [0, 0, 0, 0]
+            ],
+            J: [
+                [1, 0, 0],
+                [1, 1, 1],
+                [0, 0, 0]
+            ],
+            L: [
+                [0, 0, 1],
+                [1, 1, 1],
+                [0, 0, 0]
+            ],
+            O: [
+                [0, 1, 1, 0],
+                [0, 1, 1, 0],
+                [0, 0, 0, 0]
+            ], // Centered 4x4 for O to make rendering logic identical, but conceptually 2x2. Wait, guideline says O is centered. Let's use 3x3 for J,L,S,T,Z and 4x4 for I, and 2x2 for O.
+            // Adjusting to exact guideline representations:
+            // J,L,S,T,Z are 3x3. I is 4x4. O is 2x2 (or padded to 4x4 / 3x3 for center of rotation?).
+            // For O, rotation doesn't matter (no kick).
+            S: [
+                [0, 1, 1],
+                [1, 1, 0],
+                [0, 0, 0]
+            ],
+            T: [
+                [0, 1, 0],
+                [1, 1, 1],
+                [0, 0, 0]
+            ],
+            Z: [
+                [1, 1, 0],
+                [0, 1, 1],
+                [0, 0, 0]
+            ]
+        };
+        // Fix O shape for simplicity, 2x2 but placed carefully. Actually, standard is O has no center of rotation kick, it just rotates in place.
+        // For O, let's use 2x2 and spawn it at col 4 (0-indexed, meaning columns 4 and 5).
+        SHAPES.O = [
+            [1, 1],
+            [1, 1]
+        ];
+
+        // SRS Wall Kicks (offsets are [x, y] with +x right, +y up)
+        // Note: Our board has y=0 at the top, increasing downwards.
+        // So +y up means y-offset needs to be negated when applying to board!
+        const KICKS_JLSTZ = {
+            '0->R': [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]],
+            'R->0': [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],
+            'R->2': [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],
+            '2->R': [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]],
+            '2->L': [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],
+            'L->2': [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],
+            'L->0': [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],
+            '0->L': [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]]
+        };
+
+        const KICKS_I = {
+            '0->R': [[0, 0], [-2, 0], [1, 0], [-2, -1], [1, 2]],
+            'R->0': [[0, 0], [2, 0], [-1, 0], [2, 1], [-1, -2]],
+            'R->2': [[0, 0], [-1, 0], [2, 0], [-1, 2], [2, -1]],
+            '2->R': [[0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]],
+            '2->L': [[0, 0], [2, 0], [-1, 0], [2, 1], [-1, -2]],
+            'L->2': [[0, 0], [-2, 0], [1, 0], [-2, -1], [1, 2]],
+            'L->0': [[0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]],
+            '0->L': [[0, 0], [-1, 0], [2, 0], [-1, 2], [2, -1]]
+        };
+
+        const STATES = {
+            MENU: 0,
+            PLAYING: 1,
+            PAUSED: 2,
+            GAME_OVER: 3
+        };
+
+        const ROTATIONS = {
+            0: 0,
+            R: 1,
+            2: 2,
+            L: 3
+        };
+        const ROT_TO_STR = ['0', 'R', '2', 'L'];
+
+        const DAS = 170; // Delayed Auto Shift (ms)
+        const ARR = 50;  // Auto Repeat Rate (ms)
+        const LOCK_DELAY = 500; // Lock delay (ms)
+        const MAX_LOCK_RESETS = 15;
+
+        // Key bindings
+        window.addEventListener('keydown', e => {
+            if ([32, 37, 38, 39, 40].indexOf(e.keyCode) > -1) {
+                e.preventDefault(); // Prevent scrolling
+            }
+        });
+
+        class Randomizer {
+            constructor() {
+                this.pieces = ['I', 'J', 'L', 'O', 'S', 'T', 'Z'];
+                this.bag = [];
+                this.queue = [];
+                this.fillQueue();
+            }
+
+            shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            getBag() {
+                let newBag = [...this.pieces];
+                this.shuffle(newBag);
+                return newBag;
+            }
+
+            fillQueue() {
+                while (this.queue.length < 7) {
+                    if (this.bag.length === 0) {
+                        this.bag = this.getBag();
+                    }
+                    this.queue.push(this.bag.pop());
+                }
+            }
+
+            next() {
+                const piece = this.queue.shift();
+                this.fillQueue();
+                return piece;
+            }
+        }
+
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('playfield-canvas');
+                this.ctx = this.canvas.getContext('2d');
+
+                this.holdCanvas = document.getElementById('hold-canvas');
+                this.holdCtx = this.holdCanvas.getContext('2d');
+
+                this.nextCanvas = document.getElementById('next-canvas');
+                this.nextCtx = this.nextCanvas.getContext('2d');
+
+                this.state = STATES.MENU;
+
+                this.bindInputs();
+                this.reset();
+
+                this.lastTime = 0;
+                this.accumulator = 0;
+                this.timestep = 1000 / 60; // 60 FPS fixed timestep
+
+                requestAnimationFrame(this.loop.bind(this));
+            }
+
+            reset() {
+                // Initialize empty board
+                this.board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+
+                this.randomizer = new Randomizer();
+
+                this.score = 0;
+                this.level = 1;
+                this.lines = 0;
+                this.b2b = false; // Back to back flag
+
+                this.updateUI();
+
+                this.holdPiece = null;
+                this.canHold = true; // Only one hold per piece
+
+                // Input state
+                this.keys = {};
+                this.timers = {
+                    left: 0,
+                    right: 0,
+                    down: 0
+                };
+                this.dasActive = {
+                    left: false,
+                    right: false
+                };
+
+                this.spawnPiece();
+            }
+
+            spawnPiece(type = null) {
+                if (!type) {
+                    type = this.randomizer.next();
+                }
+
+                this.activePiece = {
+                    type: type,
+                    shape: SHAPES[type],
+                    color: COLORS[type],
+                    x: 0,
+                    y: 0,
+                    rot: 0 // 0, 1(R), 2, 3(L)
+                };
+
+                // Spawn positions according to guideline
+                if (type === 'O') {
+                    this.activePiece.x = 4;
+                    this.activePiece.y = ROWS_BUFFER - 2; // Spawn in top buffer rows
+                } else if (type === 'I') {
+                    this.activePiece.x = 3;
+                    this.activePiece.y = ROWS_BUFFER - 2; // I spawns centered, higher
+                } else {
+                    this.activePiece.x = 3;
+                    this.activePiece.y = ROWS_BUFFER - 2; // Others are 3x3, centered on cols 3-5
+                }
+
+                this.lockDelay = 0;
+                this.lockResets = 0;
+                this.lastMoveTime = 0;
+                this.groundedTime = 0;
+                this.canHold = true;
+
+                // Block out check
+                if (this.checkCollision(this.activePiece.x, this.activePiece.y, this.activePiece.shape)) {
+                    this.state = STATES.GAME_OVER;
+                    document.getElementById('gameover-overlay').classList.add('active');
+                    document.getElementById('final-score').innerText = this.score;
+                }
+
+                // Track for T-spin
+                this.lastActionWasRotation = false;
+                this.tSpinCorners = 0; // 0, 1, 2, 3, 4
+            }
+
+            // Matrix rotation (CW = 1, CCW = -1)
+            rotateMatrix(matrix, dir) {
+                const N = matrix.length;
+                let res = Array.from({ length: N }, () => Array(N).fill(0));
+                for (let r = 0; r < N; r++) {
+                    for (let c = 0; c < N; c++) {
+                        if (dir === 1) {
+                            res[c][N - 1 - r] = matrix[r][c]; // CW
+                        } else {
+                            res[N - 1 - c][r] = matrix[r][c]; // CCW
+                        }
+                    }
+                }
+                return res;
+            }
+
+            // 180 Rotation
+            rotateMatrix180(matrix) {
+                const N = matrix.length;
+                let res = Array.from({ length: N }, () => Array(N).fill(0));
+                for (let r = 0; r < N; r++) {
+                    for (let c = 0; c < N; c++) {
+                        res[N - 1 - r][N - 1 - c] = matrix[r][c];
+                    }
+                }
+                return res;
+            }
+
+            checkCollision(x, y, shape) {
+                for (let r = 0; r < shape.length; r++) {
+                    for (let c = 0; c < shape[r].length; c++) {
+                        if (shape[r][c] !== 0) {
+                            let boardX = x + c;
+                            let boardY = y + r;
+
+                            // Bounds check
+                            if (boardX < 0 || boardX >= COLS || boardY >= ROWS) {
+                                return true;
+                            }
+                            // Floor/Block check (allow y < 0 because of buffer)
+                            if (boardY >= 0 && this.board[boardY][boardX] !== null) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+
+            rotate(dir) {
+                if (this.activePiece.type === 'O') return; // O doesn't rotate
+
+                let newShape;
+                let newRot;
+                let transitionStr;
+
+                if (dir === 2) {
+                    newShape = this.rotateMatrix180(this.activePiece.shape);
+                    newRot = (this.activePiece.rot + 2) % 4;
+                    // Note: SRS doesn't define 180 kicks standardly for all pieces everywhere. 
+                    // Let's implement basic 180 rotation without kicks (or same as basic), or use basic kicks.
+                    // The spec doesn't give a 180 kick table (only 0->R, etc., but wait, it gives:
+                    // 0->R, R->0, R->2, 2->R, 2->L, L->2, L->0, 0->L. It doesn't give 0->2).
+                    // We'll just try 180 in place. If it fails, it fails.
+                } else {
+                    newShape = this.rotateMatrix(this.activePiece.shape, dir);
+                    newRot = (this.activePiece.rot + (dir === 1 ? 1 : 3)) % 4;
+
+                    let fromStr = ROT_TO_STR[this.activePiece.rot];
+                    let toStr = ROT_TO_STR[newRot];
+                    transitionStr = `${fromStr}->${toStr}`;
+                }
+
+                // Try Wall Kicks
+                let kickTable = null;
+                if (dir !== 2) { // Only do SRS kicks for 90deg rotations
+                    kickTable = this.activePiece.type === 'I' ? KICKS_I[transitionStr] : KICKS_JLSTZ[transitionStr];
+                }
+
+                let success = false;
+                let finalOffset = [0, 0];
+
+                if (kickTable) {
+                    for (let offset of kickTable) {
+                        let kickX = offset[0];
+                        let kickY = -offset[1]; // Negate Y because our board Y goes down, spec kick Y goes up
+
+                        if (!this.checkCollision(this.activePiece.x + kickX, this.activePiece.y + kickY, newShape)) {
+                            this.activePiece.x += kickX;
+                            this.activePiece.y += kickY;
+                            this.activePiece.shape = newShape;
+                            this.activePiece.rot = newRot;
+                            success = true;
+                            finalOffset = [kickX, kickY];
+                            break;
+                        }
+                    }
+                } else {
+                    // Try without kicks for 180
+                    if (!this.checkCollision(this.activePiece.x, this.activePiece.y, newShape)) {
+                        this.activePiece.shape = newShape;
+                        this.activePiece.rot = newRot;
+                        success = true;
+                    }
+                }
+
+                if (success) {
+                    // Move reset lock delay
+                    if (this.lockResets < MAX_LOCK_RESETS) {
+                        this.groundedTime = 0;
+                        this.lockResets++;
+                    }
+
+                    // Check T-Spin
+                    if (this.activePiece.type === 'T') {
+                        this.lastActionWasRotation = true;
+                        this.tSpinCorners = this.countTCorners(this.activePiece.x, this.activePiece.y, this.activePiece.shape);
+                        // Mini T-spin vs Regular T-spin logic (simplified: if 3 corners, it's a T-spin)
+                    } else {
+                        this.lastActionWasRotation = false;
+                    }
+                }
+            }
+
+            countTCorners(x, y, shape) {
+                // T is 3x3. Corners are (0,0), (0,2), (2,0), (2,2) relative to shape box.
+                let corners = 0;
+                const checkCorner = (cx, cy) => {
+                    let bx = x + cx;
+                    let by = y + cy;
+                    if (bx < 0 || bx >= COLS || by >= ROWS || (by >= 0 && this.board[by][bx] !== null)) {
+                        return 1;
+                    }
+                    return 0;
+                };
+                corners += checkCorner(0, 0);
+                corners += checkCorner(2, 0);
+                corners += checkCorner(0, 2);
+                corners += checkCorner(2, 2);
+                return corners;
+            }
+
+            move(dx, dy) {
+                if (!this.checkCollision(this.activePiece.x + dx, this.activePiece.y + dy, this.activePiece.shape)) {
+                    this.activePiece.x += dx;
+                    this.activePiece.y += dy;
+
+                    if (dx !== 0 && this.lockResets < MAX_LOCK_RESETS) {
+                        this.groundedTime = 0; // Move reset
+                        this.lockResets++;
+                    }
+
+                    this.lastActionWasRotation = false; // Moving negates T-spin status for the last action
+                    return true;
+                }
+                return false;
+            }
+
+            hardDrop() {
+                let distance = 0;
+                while (!this.checkCollision(this.activePiece.x, this.activePiece.y + 1, this.activePiece.shape)) {
+                    this.activePiece.y += 1;
+                    distance += 1;
+                }
+                this.score += distance * 2;
+                this.lockPiece();
+                this.updateUI();
+            }
+
+            getGhostY() {
+                let gy = this.activePiece.y;
+                while (!this.checkCollision(this.activePiece.x, gy + 1, this.activePiece.shape)) {
+                    gy += 1;
+                }
+                return gy;
+            }
+
+            hold() {
+                if (!this.canHold) return;
+
+                let currentType = this.activePiece.type;
+                if (this.holdPiece === null) {
+                    this.holdPiece = currentType;
+                    this.spawnPiece();
+                } else {
+                    let temp = this.holdPiece;
+                    this.holdPiece = currentType;
+                    this.spawnPiece(temp);
+                }
+                this.canHold = false;
+                this.lastActionWasRotation = false;
+            }
+
+            lockPiece() {
+                for (let r = 0; r < this.activePiece.shape.length; r++) {
+                    for (let c = 0; c < this.activePiece.shape[r].length; c++) {
+                        if (this.activePiece.shape[r][c] !== 0) {
+                            let by = this.activePiece.y + r;
+                            let bx = this.activePiece.x + c;
+                            if (by >= 0 && by < ROWS && bx >= 0 && bx < COLS) {
+                                this.board[by][bx] = this.activePiece.color;
+                            }
+                        }
+                    }
+                }
+
+                this.clearLines();
+                this.spawnPiece();
+            }
+
+            clearLines() {
+                let linesCleared = 0;
+                for (let r = ROWS - 1; r >= 0; r--) {
+                    let full = true;
+                    for (let c = 0; c < COLS; c++) {
+                        if (this.board[r][c] === null) {
+                            full = false;
+                            break;
+                        }
+                    }
+                    if (full) {
+                        linesCleared++;
+                        // Shift above down
+                        for (let y = r; y > 0; y--) {
+                            for (let c = 0; c < COLS; c++) {
+                                this.board[y][c] = this.board[y - 1][c];
+                            }
+                        }
+                        // Clear top
+                        for (let c = 0; c < COLS; c++) {
+                            this.board[0][c] = null;
+                        }
+                        r++; // Re-check this row index since it's now filled with the row above
+                    }
+                }
+
+                if (linesCleared > 0 || this.lastActionWasRotation) {
+                    this.updateScore(linesCleared);
+                }
+            }
+
+            updateScore(linesCleared) {
+                let isTSpin = (this.activePiece.type === 'T' && this.lastActionWasRotation && this.tSpinCorners >= 3);
+
+                let pts = 0;
+                let action = '';
+
+                if (isTSpin) {
+                    if (linesCleared === 1) { pts = 800 * this.level; action = 'T-Spin Single'; }
+                    else if (linesCleared === 2) { pts = 1200 * this.level; action = 'T-Spin Double'; }
+                    else if (linesCleared === 3) { pts = 1600 * this.level; action = 'T-Spin Triple'; }
+                    else { pts = 400 * this.level; action = 'T-Spin'; } // T-spin 0 lines (non-standard but exists, guideline says 400)
+                } else {
+                    if (linesCleared === 1) { pts = 100 * this.level; action = 'Single'; }
+                    else if (linesCleared === 2) { pts = 300 * this.level; action = 'Double'; }
+                    else if (linesCleared === 3) { pts = 500 * this.level; action = 'Triple'; }
+                    else if (linesCleared === 4) { pts = 800 * this.level; action = 'Tetris'; }
+                }
+
+                // Back to back logic (Tetris or T-Spin line clears)
+                let isDifficult = (linesCleared === 4 || (isTSpin && linesCleared > 0));
+                if (isDifficult) {
+                    if (this.b2b) {
+                        pts = Math.floor(pts * 1.5);
+                        action = 'B2B ' + action;
+                    }
+                    this.b2b = true;
+                } else if (linesCleared > 0) {
+                    this.b2b = false;
+                }
+
+                this.score += pts;
+                this.lines += linesCleared;
+                this.level = Math.floor(this.lines / 5) + 1;
+
+                this.updateUI();
+            }
+
+            updateUI() {
+                document.getElementById('score-display').innerText = this.score;
+                document.getElementById('level-display').innerText = this.level;
+                document.getElementById('lines-display').innerText = this.lines;
+                document.getElementById('b2b-display').innerText = this.b2b ? "Back-To-Back!" : "";
+            }
+
+            bindInputs() {
+                window.addEventListener('keydown', e => {
+                    if (this.state === STATES.MENU) {
+                        if (e.keyCode === 13) { // Enter
+                            this.state = STATES.PLAYING;
+                            document.getElementById('start-overlay').classList.remove('active');
+                        }
+                        return;
+                    }
+                    if (this.state === STATES.GAME_OVER) {
+                        if (e.keyCode === 13) {
+                            this.reset();
+                            this.state = STATES.PLAYING;
+                            document.getElementById('gameover-overlay').classList.remove('active');
+                        }
+                        return;
+                    }
+
+                    if (e.keyCode === 80 || e.keyCode === 27) { // P or Esc
+                        if (this.state === STATES.PLAYING) {
+                            this.state = STATES.PAUSED;
+                            document.getElementById('pause-overlay').classList.add('active');
+                        } else if (this.state === STATES.PAUSED) {
+                            this.state = STATES.PLAYING;
+                            document.getElementById('pause-overlay').classList.remove('active');
+                        }
+                    }
+
+                    if (this.state !== STATES.PLAYING) return;
+
+                    this.keys[e.keyCode] = true;
+
+                    // One-off actions
+                    if (e.keyCode === 38 || e.keyCode === 88) { // Up / X (CW)
+                        this.rotate(1);
+                    } else if (e.keyCode === 90 || e.keyCode === 17) { // Z / Ctrl (CCW)
+                        this.rotate(3);
+                    } else if (e.keyCode === 65) { // A (180)
+                        this.rotate(2);
+                    } else if (e.keyCode === 32) { // Space (Hard drop)
+                        this.hardDrop();
+                    } else if (e.keyCode === 67 || e.keyCode === 16) { // C / Shift (Hold)
+                        this.hold();
+                    }
+
+                    // Initial key down logic for DAS
+                    if (e.keyCode === 37) { // Left
+                        if (this.timers.left === 0 && !this.dasActive.left) {
+                            this.move(-1, 0);
+                        }
+                    } else if (e.keyCode === 39) { // Right
+                        if (this.timers.right === 0 && !this.dasActive.right) {
+                            this.move(1, 0);
+                        }
+                    }
+                });
+
+                window.addEventListener('keyup', e => {
+                    this.keys[e.keyCode] = false;
+                    if (e.keyCode === 37) {
+                        this.timers.left = 0;
+                        this.dasActive.left = false;
+                    }
+                    if (e.keyCode === 39) {
+                        this.timers.right = 0;
+                        this.dasActive.right = false;
+                    }
+                });
+            }
+
+            processInput(dt) {
+                if (this.state !== STATES.PLAYING) return;
+
+                // Left/Right DAS & ARR
+                const processDir = (key, dir, timerKey, dasFlagKey) => {
+                    if (this.keys[key]) {
+                        this.timers[timerKey] += dt;
+                        if (!this.dasActive[dasFlagKey]) {
+                            if (this.timers[timerKey] >= DAS) {
+                                this.dasActive[dasFlagKey] = true;
+                                this.timers[timerKey] = 0;
+                                this.move(dir, 0);
+                            }
+                        } else {
+                            if (this.timers[timerKey] >= ARR) {
+                                this.timers[timerKey] = 0;
+                                this.move(dir, 0);
+                            }
+                        }
+                    }
+                };
+
+                processDir(37, -1, 'left', 'left'); // Left
+                processDir(39, 1, 'right', 'right'); // Right
+
+                // Soft Drop (Down arrow = 40)
+                if (this.keys[40]) {
+                    // Soft drop is 20x gravity. Usually handled by accelerating fall in update()
+                    // We'll apply it in the gravity section.
+                }
+            }
+
+            update(dt) {
+                if (this.state !== STATES.PLAYING) return;
+
+                this.processInput(dt);
+
+                // Gravity
+                // dropInterval = (0.8 - (level - 1) * 0.007) ^ (level - 1) seconds
+                let l = this.level - 1;
+                let dropIntervalS = Math.pow(0.8 - l * 0.007, l);
+                let dropIntervalMs = Math.max(dropIntervalS * 1000, 10); // Cap at 10ms (100 rows/sec)
+
+                // Soft drop applies 20x gravity
+                if (this.keys[40]) {
+                    dropIntervalMs = dropIntervalMs / 20;
+                }
+
+                // Is piece grounded?
+                let isGrounded = this.checkCollision(this.activePiece.x, this.activePiece.y + 1, this.activePiece.shape);
+
+                if (isGrounded) {
+                    this.groundedTime += dt;
+                    if (this.groundedTime >= LOCK_DELAY) {
+                        this.lockPiece();
+                    }
+                } else {
+                    this.groundedTime = 0;
+                    this.lastMoveTime += dt;
+
+                    // Accumulate drops for high speeds or soft drop
+                    while (this.lastMoveTime >= dropIntervalMs) {
+                        if (!this.checkCollision(this.activePiece.x, this.activePiece.y + 1, this.activePiece.shape)) {
+                            this.activePiece.y++;
+                            this.lastMoveTime -= dropIntervalMs;
+                            if (this.keys[40]) {
+                                this.score += 1; // 1 pt per cell soft dropped
+                                this.updateUI();
+                            }
+                        } else {
+                            // Hit ground during multi-drop
+                            this.lastMoveTime = 0;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            drawBlock(ctx, x, y, color, alpha = 1.0) {
+                ctx.fillStyle = color;
+                ctx.globalAlpha = alpha;
+                ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+
+                // Inner border for crisp aesthetic
+                ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+
+                // Highlight top-left for a bevel effect
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.beginPath();
+                ctx.moveTo(x * CELL_SIZE, y * CELL_SIZE + CELL_SIZE);
+                ctx.lineTo(x * CELL_SIZE, y * CELL_SIZE);
+                ctx.lineTo(x * CELL_SIZE + CELL_SIZE, y * CELL_SIZE);
+                ctx.stroke();
+
+                ctx.globalAlpha = 1.0;
+            }
+
+            drawMiniPiece(ctx, type, offsetX, offsetY) {
+                if (!type) return;
+                const shape = SHAPES[type];
+                const color = COLORS[type];
+
+                // Calculate bounding box to center it
+                let minX = 4, maxX = -1, minY = 4, maxY = -1;
+                for (let r = 0; r < shape.length; r++) {
+                    for (let c = 0; c < shape[r].length; c++) {
+                        if (shape[r][c]) {
+                            minX = Math.min(minX, c);
+                            maxX = Math.max(maxX, c);
+                            minY = Math.min(minY, r);
+                            maxY = Math.max(maxY, r);
+                        }
+                    }
+                }
+                let width = (maxX - minX + 1) * CELL_SIZE;
+                let height = (maxY - minY + 1) * CELL_SIZE;
+
+                let startX = offsetX + (ctx.canvas.width - width) / 2 - (minX * CELL_SIZE);
+                let startY = offsetY + (ctx.canvas.height / (ctx.canvas.id === 'next-canvas' ? 5 : 1) - height) / 2 - (minY * CELL_SIZE);
+
+                for (let r = 0; r < shape.length; r++) {
+                    for (let c = 0; c < shape[r].length; c++) {
+                        if (shape[r][c]) {
+                            this.drawBlock(ctx, startX / CELL_SIZE + c, startY / CELL_SIZE + r, color);
+                        }
+                    }
+                }
+            }
+
+            draw() {
+                // Clear all
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.holdCtx.clearRect(0, 0, this.holdCanvas.width, this.holdCanvas.height);
+                this.nextCtx.clearRect(0, 0, this.nextCanvas.width, this.nextCanvas.height);
+
+                // Draw Board
+                for (let r = ROWS_BUFFER; r < ROWS; r++) {
+                    for (let c = 0; c < COLS; c++) {
+                        if (this.board[r][c]) {
+                            this.drawBlock(this.ctx, c, r - ROWS_BUFFER, this.board[r][c]);
+                        }
+                    }
+                }
+
+                if (this.state === STATES.PLAYING) {
+                    // Draw Ghost
+                    let gy = this.getGhostY();
+                    for (let r = 0; r < this.activePiece.shape.length; r++) {
+                        for (let c = 0; c < this.activePiece.shape[r].length; c++) {
+                            if (this.activePiece.shape[r][c]) {
+                                let drawY = gy + r - ROWS_BUFFER;
+                                if (drawY >= 0) {
+                                    this.drawBlock(this.ctx, this.activePiece.x + c, drawY, this.activePiece.color, 0.3);
+                                }
+                            }
+                        }
+                    }
+
+                    // Draw Active Piece
+                    for (let r = 0; r < this.activePiece.shape.length; r++) {
+                        for (let c = 0; c < this.activePiece.shape[r].length; c++) {
+                            if (this.activePiece.shape[r][c]) {
+                                let drawY = this.activePiece.y + r - ROWS_BUFFER;
+                                if (drawY >= 0) { // Only draw visible part
+                                    // If lock delay is near end, blink? Guideline doesn't require, but nice to have.
+                                    this.drawBlock(this.ctx, this.activePiece.x + c, drawY, this.activePiece.color);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Draw Hold
+                if (this.holdPiece) {
+                    this.holdCtx.globalAlpha = this.canHold ? 1.0 : 0.4;
+                    this.drawMiniPiece(this.holdCtx, this.holdPiece, 0, 0);
+                    this.holdCtx.globalAlpha = 1.0;
+                }
+
+                // Draw Next Queue
+                for (let i = 0; i < 5; i++) {
+                    if (this.randomizer.queue[i]) {
+                        this.drawMiniPiece(this.nextCtx, this.randomizer.queue[i], 0, i * 80);
+                    }
+                }
+            }
+
+            loop(timestamp) {
+                if (!this.lastTime) this.lastTime = timestamp;
+
+                let deltaTime = timestamp - this.lastTime;
+                this.lastTime = timestamp;
+
+                // Cap delta time to prevent spiral of death on long lag
+                if (deltaTime > 250) deltaTime = 250;
+
+                this.accumulator += deltaTime;
+
+                // Update physics using fixed timestep
+                while (this.accumulator >= this.timestep) {
+                    this.update(this.timestep);
+                    this.accumulator -= this.timestep;
+                }
+
+                // Draw everything
+                this.draw();
+
+                requestAnimationFrame(this.loop.bind(this));
+            }
+        }
+
+        // Initialize Game
+        const game = new Game();
+    </script>
+</body>
+
+</html>
