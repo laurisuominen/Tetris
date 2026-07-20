@@ -9,9 +9,14 @@ import { fitPlayfield, fitPreview, backingSize, crispOffset } from '../js/render
 import { COLS, VISIBLE_ROWS, TIMESTEP_MS } from '../js/core/constants.js';
 
 describe('DAS and ARR', () => {
-  it('moves once immediately on press', () => {
+  /**
+   * Contract: auto-repeat contributes ONLY repeats, never the initial move.
+   * The keypress itself is already queued by keyboard.js, so returning a move
+   * here on first press would step the piece two cells per tap.
+   */
+  it('contributes no move on the initial press', () => {
     const repeat = createAutoRepeat({ das: 170, arr: 50 });
-    expect(repeat.tick(TIMESTEP_MS, -1)).toBe(-1);
+    expect(repeat.tick(TIMESTEP_MS, -1)).toBe(0);
   });
 
   it('stays silent until DAS has charged', () => {
@@ -52,24 +57,37 @@ describe('DAS and ARR', () => {
     expect(sawMultiple).toBeTruthy();
   });
 
-  it('restarts DAS on a direction change', () => {
+  it('discards the old charge on a direction change', () => {
     const repeat = createAutoRepeat({ das: 170, arr: 50 });
-    repeat.tick(TIMESTEP_MS, -1);
-    for (let i = 0; i < 20; i++) repeat.tick(TIMESTEP_MS, -1);   // fully charged
+    for (let i = 0; i < 20; i++) repeat.tick(TIMESTEP_MS, -1);   // fully charged left
 
-    // Switching direction must produce a single move, not an instant burst.
-    expect(repeat.tick(TIMESTEP_MS, 1)).toBe(1);
+    // Switching must not inherit the left charge and burst rightward.
     expect(repeat.tick(TIMESTEP_MS, 1)).toBe(0);
+    expect(repeat.tick(TIMESTEP_MS, 1)).toBe(0);
+
+    // It has to serve a full DAS again before repeating.
+    let elapsed = 0;
+    let moves = 0;
+    while (elapsed < 150) {
+      moves += repeat.tick(TIMESTEP_MS, 1);
+      elapsed += TIMESTEP_MS;
+    }
+    expect(moves).toBe(0);
   });
 
-  it('stops and discharges on release', () => {
+  it('discharges on release so the next press starts fresh', () => {
     const repeat = createAutoRepeat({ das: 170, arr: 50 });
-    repeat.tick(TIMESTEP_MS, 1);
-    for (let i = 0; i < 20; i++) repeat.tick(TIMESTEP_MS, 1);
+    for (let i = 0; i < 20; i++) repeat.tick(TIMESTEP_MS, 1);    // fully charged
     expect(repeat.tick(TIMESTEP_MS, 0)).toBe(0);
-    // Pressing again starts from scratch.
-    expect(repeat.tick(TIMESTEP_MS, 1)).toBe(1);
-    expect(repeat.tick(TIMESTEP_MS, 1)).toBe(0);
+
+    // Re-pressing must serve DAS again rather than repeating immediately.
+    let elapsed = 0;
+    let moves = 0;
+    while (elapsed < 150) {
+      moves += repeat.tick(TIMESTEP_MS, 1);
+      elapsed += TIMESTEP_MS;
+    }
+    expect(moves).toBe(0);
   });
 
   it('treats both directions held as neither', () => {
