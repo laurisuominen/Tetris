@@ -57,13 +57,28 @@ export function createRenderer({ container, boardCanvas, pieceCanvas, fxCanvas, 
     document.documentElement.style.setProperty('--cell-size', `${cell}px`);
   }
 
-  const observer = new ResizeObserver(() => {
+  let resizePending = 0;
+
+  function scheduleResize() {
     // Debounce to one frame: a drag-resize fires this continuously.
     cancelAnimationFrame(resizePending);
     resizePending = requestAnimationFrame(resize);
-  });
-  let resizePending = 0;
+  }
+
+  // ResizeObserver is the precise signal, but it is not always delivered —
+  // notably in background or embedded contexts where rAF is throttled. The
+  // window listener and the settle pass below are the safety net: without them
+  // a single early measurement taken before layout settles would stick, and the
+  // board would render at the wrong size forever.
+  const observer = new ResizeObserver(scheduleResize);
   observer.observe(container);
+
+  const offWindowResize = () => {
+    window.removeEventListener('resize', resize);
+    window.removeEventListener('orientationchange', resize);
+  };
+  window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', resize);
 
   const stopDprWatch = watchDpr(() => {
     palette.refresh();
@@ -166,6 +181,13 @@ export function createRenderer({ container, boardCanvas, pieceCanvas, fxCanvas, 
 
   resize();
 
+  // Re-measure once layout, fonts and scrollbars have settled. The first pass
+  // above can land before the grid has resolved, and without this the board
+  // keeps whatever size that early measurement produced.
+  requestAnimationFrame(resize);
+  if (document.readyState !== 'complete') window.addEventListener('load', resize, { once: true });
+  document.fonts?.ready.then(resize).catch(() => {});
+
   return {
     resize,
 
@@ -227,7 +249,9 @@ export function createRenderer({ container, boardCanvas, pieceCanvas, fxCanvas, 
 
     destroy() {
       observer.disconnect();
+      offWindowResize();
       stopDprWatch();
+      cancelAnimationFrame(resizePending);
     }
   };
 }
