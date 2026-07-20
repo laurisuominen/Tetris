@@ -1,0 +1,38 @@
+/**
+ * Procedural level backdrop.
+ *
+ * Two canvases cross-fade on level up: one is visible, the other is generated
+ * off-screen and then faded in. The scrim above them is fixed and is one of
+ * three stacked guarantees that a generator can never hurt gameplay contrast
+ * (the others being the generators' constrained lightness range and the
+ * playfield's own opaque slab).
+ */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  opacity: 0;
+  transition: opacity var(--dur-bg-fade) var(--ease-out);
+}
+
+.backdrop[data-visible="true"] {
+  opacity: var(--bg-intensity);
+}
+
+.backdrop-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: oklch(0.14 0.012 265 / 0.72);
+}
+
+/* Intensity "Off" skips generation entirely in JS; this just guarantees nothing
+   is painted even if a canvas was already populated. */
+:root[data-bg="off"] .backdrop,
+:root[data-bg="off"] .backdrop-scrim {
+  display: none;
+}

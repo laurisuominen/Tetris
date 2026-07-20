@@ -1,0 +1,51 @@
+/**
+ * Keyframes for DOM-level motion. Canvas effects (line-clear sweep, lock pulse)
+ * are drawn in js/render/fxLayer.js instead.
+ *
+ * Every animation here reads a --dur-* token, so reduced-motion collapses them
+ * to 0ms at the token level rather than needing per-rule overrides.
+ */
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes badge-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes level-flash {
+  0%, 100% { color: var(--text-primary); }
+  50%      { color: var(--accent-strong); }
+}
+
+.badge:not([hidden]) {
+  animation: badge-in var(--dur-base) var(--ease-spring);
+}
+
+.stat__value[data-flash="true"] {
+  animation: level-flash var(--dur-slow) var(--ease-out);
+}
+
+/* Belt-and-braces: if a future rule forgets to use a duration token, this still
+   neutralises it for users who asked for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-motion="auto"] *,
+  :root[data-motion="auto"] *::before,
+  :root[data-motion="auto"] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:root[data-motion="off"] *,
+:root[data-motion="off"] *::before,
+:root[data-motion="off"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}

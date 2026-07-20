@@ -1,0 +1,174 @@
+/** Panels, stats, buttons, overlays, touch controls. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-2);
+}
+
+.panel__label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.preview {
+  width: 100%;
+  height: auto;
+}
+
+/* Hold slot dims while the piece is locked out — spec §7. */
+.preview[data-locked="true"] {
+  opacity: 0.4;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+/* --- Stats --------------------------------------------------------------- */
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.stat__key {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.stat__value {
+  font-family: var(--font-num);
+  font-size: var(--fs-lg);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.stat__value--lead {
+  font-size: var(--fs-xl);
+  color: var(--accent-strong);
+}
+
+/* Clear labels — "Tetris", "T-Spin Double", "Back-to-Back". Never conveys
+   meaning by colour alone; the text carries it. */
+.badge {
+  padding: var(--sp-1) var(--sp-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--bg-base);
+  background: var(--accent-strong);
+  border-radius: var(--r-sm);
+}
+
+/* --- Buttons ------------------------------------------------------------- */
+
+.btn {
+  padding: var(--sp-2) var(--sp-4);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  border-radius: var(--r-md);
+  background: var(--accent);
+  color: var(--bg-base);
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.btn:hover { background: var(--accent-strong); }
+.btn:active { transform: translateY(1px); }
+
+.btn--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn--ghost:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+/* --- Touch controls ------------------------------------------------------ */
+
+/* Real <button> elements, so they are keyboard- and screen-reader-reachable
+   rather than gesture-only. */
+.tbtn {
+  min-height: 3rem;
+  font-size: var(--fs-lg);
+  color: var(--text-secondary);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.tbtn:active {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+/* --- Overlays ------------------------------------------------------------ */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-4);
+  background: oklch(0.10 0.01 265 / 0.78);
+  backdrop-filter: blur(6px);
+  z-index: 10;
+}
+
+.overlay[hidden] { display: none; }
+
+.overlay__card {
+  width: min(28rem, 100%);
+  padding: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  text-align: center;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-3);
+  animation: card-in var(--dur-base) var(--ease-spring);
+}
+
+.overlay__title {
+  font-size: var(--fs-2xl);
+  letter-spacing: -0.02em;
+}
+
+.overlay__body {
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  white-space: pre-line;
+}
+
+.overlay__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  justify-content: center;
+}

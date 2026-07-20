@@ -1,0 +1,119 @@
+/**
+ * App shell layout.
+ *
+ * 100svh rather than 100vh: on mobile the address bar collapses, making 100vh
+ * taller than the visible viewport and producing exactly the scrolling spec §11
+ * forbids. Small-viewport units size to the worst case instead.
+ */
+
+.app {
+  height: 100vh;   /* fallback for browsers without svh support */
+  height: 100svh;
+  padding: var(--sp-4);
+  gap: var(--sp-4);
+  display: grid;
+  container-type: inline-size;
+  align-items: center;
+  justify-content: center;
+
+  /* Wide default: hold | field | next over stats. */
+  grid-template-columns: var(--panel-w) auto var(--panel-w);
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "hold field next"
+    "hold field stats";
+}
+
+.panel--hold  { grid-area: hold;  align-self: start; }
+.panel--next  { grid-area: next;  align-self: start; }
+.panel--stats { grid-area: stats; align-self: start; }
+.field        { grid-area: field; }
+
+.touchpad { display: none; }
+
+/* The playfield drives the whole layout: it takes whatever vertical room is
+   left, and its 1:2 aspect ratio decides how wide everything else may be. */
+.field {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+.field__slab {
+  height: 100%;
+  aspect-ratio: 1 / 2;
+  padding: var(--sp-2);
+  background: var(--slab-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3), var(--shadow-glow);
+  backdrop-filter: blur(2px);
+}
+
+/* All three canvases occupy the same grid cell, z-ordered by DOM order. */
+.field__stack {
+  position: relative;
+  height: 100%;
+  display: grid;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--well-bg);
+  touch-action: none;   /* scoped here so dialogs stay scrollable */
+}
+
+.field__stack > .layer {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+}
+
+/* Narrow / portrait: panels collapse into a single top bar, touch controls
+   pin to the bottom. */
+@media (max-width: 900px), (orientation: portrait) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "topbar"
+      "field"
+      "touchpad";
+    padding: var(--sp-2);
+    gap: var(--sp-2);
+  }
+
+  .panel--hold,
+  .panel--next,
+  .panel--stats {
+    grid-area: topbar;
+  }
+
+  /* Three panels sharing one grid area need their own row to sit in. */
+  .app > .panel--hold  { justify-self: start; }
+  .app > .panel--next  { justify-self: center; }
+  .app > .panel--stats { justify-self: end; }
+
+  .panel {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--sp-2);
+  }
+
+  .stats { flex-direction: row; gap: var(--sp-3); }
+
+  .touchpad {
+    grid-area: touchpad;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--sp-2);
+  }
+
+  .field__slab { padding: var(--sp-1); }
+}
+
+/* Very short viewports (landscape phones): drop the slab padding and let the
+   field use every available pixel. */
+@media (max-height: 480px) {
+  .app { padding: var(--sp-1); gap: var(--sp-2); }
+  .panel__label { display: none; }
+}
