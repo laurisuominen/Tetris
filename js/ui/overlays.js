@@ -54,6 +54,14 @@ export function createOverlays({ onAction }) {
     return node;
   }
 
+  function link(label, href, variant = '') {
+    return el('a', {
+      text: label,
+      className: `btn ${variant}`.trim(),
+      attrs: { href }
+    });
+  }
+
   function open(kind, { title, body, buttons }) {
     currentKind = kind;
     openedAt = performance.now();
@@ -124,7 +132,9 @@ export function createOverlays({ onAction }) {
         buttons: [
           button('Play', 'start'),
           button('Scores', 'scores', 'btn--ghost'),
-          button('Settings', 'settings', 'btn--ghost')
+          button('Settings', 'settings', 'btn--ghost'),
+          link('About', 'about/', 'btn--ghost'),
+          link('Leaderboard', 'leaderboard/', 'btn--ghost')
         ]
       });
     },
@@ -137,7 +147,9 @@ export function createOverlays({ onAction }) {
           button('Resume', 'resume'),
           button('Restart', 'restart', 'btn--ghost'),
           button('Scores', 'scores', 'btn--ghost'),
-          button('Settings', 'settings', 'btn--ghost')
+          button('Settings', 'settings', 'btn--ghost'),
+          link('About', 'about/', 'btn--ghost'),
+          link('Leaderboard', 'leaderboard/', 'btn--ghost')
         ]
       });
     },
