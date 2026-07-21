@@ -33,26 +33,7 @@
 .panel--hold .preview { height: clamp(3rem, 9vh, 5.5rem); }
 .panel--next .preview { height: clamp(10rem, 38vh, 24rem); }
 
-/* Touch layout: a small Hold and a wide, short Next strip (drawn horizontally).
-   This MUST come after the desktop defaults above — a media query adds no
-   specificity, so source order is what lets it win. */
-@media (max-width: 900px), (orientation: portrait), (pointer: coarse) {
-  .panel--hold .preview {
-    width: clamp(2.75rem, 12vw, 4rem);
-    height: clamp(2rem, 7vh, 3rem);
-  }
-  .panel--next .preview {
-    width: clamp(8rem, 44vw, 15rem);
-    height: clamp(2.25rem, 8vh, 3.5rem);
-  }
 
-  .panel { padding: var(--sp-2); gap: var(--sp-1); }
-  .panel__label { display: none; }   /* piece shapes are self-evident here */
-
-  .panel--stats { align-items: stretch; }
-  .stats { flex-direction: row; justify-content: space-between; gap: var(--sp-3); }
-  .panel__actions { display: none; }
-}
 
 /* Hold slot dims while the piece is locked out — spec §7. */
 .preview[data-locked="true"] {
@@ -290,4 +271,25 @@
   width: 1.35rem;
   height: 1.35rem;
   accent-color: var(--accent);
+}
+
+/* Touch layout: a small Hold and a wide, short Next strip (drawn horizontally).
+   This MUST come after the desktop defaults above — a media query adds no
+   specificity, so source order is what lets it win. */
+@media (max-width: 900px), (orientation: portrait), (pointer: coarse) {
+  .panel--hold .preview {
+    width: clamp(2.75rem, 12vw, 4rem);
+    height: clamp(2rem, 7vh, 3rem);
+  }
+  .panel--next .preview {
+    width: clamp(8rem, 44vw, 15rem);
+    height: clamp(2.25rem, 8vh, 3.5rem);
+  }
+
+  .panel { padding: var(--sp-2); gap: var(--sp-1); }
+  .panel__label { display: none; }   /* piece shapes are self-evident here */
+
+  .panel--stats { align-items: stretch; }
+  .stats { flex-direction: row; justify-content: space-between; gap: var(--sp-3); }
+  .panel__actions { display: none; }
 }
