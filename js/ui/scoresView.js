@@ -1,12 +1,13 @@
 import { el } from '../util/dom.js';
 import { isHighScore, saveScore, loadScores } from '../storage/scoresStore.js';
+import { fetchTopScores, submitScore } from '../leaderboard.js';
 
 export function createScoresView(overlays) {
-  function renderLeaderboard() {
+  function renderLocalLeaderboard() {
     const scores = loadScores();
-    const container = el('div', { attrs: { style: 'margin-top: 24px; text-align: left; font-size: var(--text-sm);' } });
+    const container = el('div', { attrs: { style: 'margin-top: 16px; text-align: left; font-size: var(--text-sm); flex: 1;' } });
     
-    const title = el('h2', { text: 'Leaderboard', attrs: { style: 'font-size: var(--text-base); margin-bottom: 8px;' } });
+    const title = el('h2', { text: 'Local High Scores', attrs: { style: 'font-size: var(--text-base); margin-bottom: 8px;' } });
     container.appendChild(title);
 
     if (scores.length === 0) {
@@ -15,7 +16,7 @@ export function createScoresView(overlays) {
     }
     
     const table = el('table', { attrs: { style: 'width: 100%; border-collapse: collapse;' } });
-    scores.forEach((s, i) => {
+    scores.slice(0, 10).forEach((s, i) => {
       const tr = el('tr', { attrs: { style: 'border-bottom: 1px solid var(--border-subtle); line-height: 2;' } });
       const tdRank = el('td', { text: `${i + 1}.`, attrs: { style: 'color: var(--text-muted); width: 15%;' } });
       const tdInitials = el('td', { text: s.initials, attrs: { style: 'font-weight: bold; width: 25%;' } });
@@ -26,6 +27,41 @@ export function createScoresView(overlays) {
       table.appendChild(tr);
     });
     container.appendChild(table);
+    return container;
+  }
+
+  function renderGlobalLeaderboardContainer() {
+    const container = el('div', { attrs: { style: 'margin-top: 16px; text-align: left; font-size: var(--text-sm); flex: 1;' } });
+    const title = el('h2', { text: 'Global Top 10', attrs: { style: 'font-size: var(--text-base); margin-bottom: 8px;' } });
+    container.appendChild(title);
+
+    const loadingText = el('p', { text: 'Loading...', attrs: { style: 'color: var(--text-muted);' } });
+    container.appendChild(loadingText);
+
+    fetchTopScores().then(scores => {
+      container.removeChild(loadingText);
+      if (scores.length === 0) {
+        container.appendChild(el('p', { text: 'No global scores yet.', attrs: { style: 'color: var(--text-muted);' } }));
+        return;
+      }
+
+      const table = el('table', { attrs: { style: 'width: 100%; border-collapse: collapse;' } });
+      scores.forEach((s, i) => {
+        const tr = el('tr', { attrs: { style: 'border-bottom: 1px solid var(--border-subtle); line-height: 2;' } });
+        const tdRank = el('td', { text: `${i + 1}.`, attrs: { style: 'color: var(--text-muted); width: 15%;' } });
+        const tdInitials = el('td', { text: s.player_name, attrs: { style: 'font-weight: bold; width: 25%;' } });
+        const tdScore = el('td', { text: s.score.toLocaleString(), attrs: { style: 'text-align: right; font-variant-numeric: tabular-nums;' } });
+        tr.appendChild(tdRank);
+        tr.appendChild(tdInitials);
+        tr.appendChild(tdScore);
+        table.appendChild(tr);
+      });
+      container.appendChild(table);
+    }).catch(err => {
+      container.removeChild(loadingText);
+      container.appendChild(el('p', { text: 'Error loading scores.', attrs: { style: 'color: var(--piece-z);' } }));
+    });
+
     return container;
   }
 
@@ -47,14 +83,34 @@ export function createScoresView(overlays) {
       container.appendChild(inputForm);
 
       const saveBtn = el('button', { text: 'Save Score', className: 'btn', attrs: { type: 'button' } });
+      const statusMsg = el('p', { text: '', attrs: { style: 'font-size: var(--text-xs); margin-top: 8px;' } });
+      container.appendChild(statusMsg);
       
-      saveBtn.onclick = () => {
+      saveBtn.onclick = async () => {
+        saveBtn.disabled = true;
+        input.disabled = true;
+        const initials = input.value || 'AAA';
+        
+        // Save locally
         saveScore({
           score: state.score,
           level: state.level,
           lines: state.lines,
-          initials: input.value || 'AAA'
+          initials: initials
         });
+
+        // Submit globally if valid score > 0
+        if (state.score > 0) {
+          try {
+            statusMsg.textContent = 'Submitting to global leaderboard...';
+            statusMsg.style.color = 'var(--text-muted)';
+            const sessionDurationSeconds = Math.floor((state.playTimeMs || 0) / 1000);
+            await submitScore(initials, state.score, sessionDurationSeconds);
+          } catch (e) {
+            console.error('Failed to submit global score', e);
+          }
+        }
+        
         showLeaderboardOnly(state);
       };
 
@@ -76,7 +132,12 @@ export function createScoresView(overlays) {
       container.appendChild(el('p', { text: `Score ${state.score.toLocaleString()}` }));
       container.appendChild(el('p', { text: `Level ${state.level}   Lines ${state.lines}`, attrs: { style: 'color: var(--text-muted); margin-bottom: 16px;' } }));
     }
-    container.appendChild(renderLeaderboard());
+    
+    const boardsContainer = el('div', { attrs: { style: 'display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;' } });
+    boardsContainer.appendChild(renderLocalLeaderboard());
+    boardsContainer.appendChild(renderGlobalLeaderboardContainer());
+    
+    container.appendChild(boardsContainer);
 
     let buttons;
     if (state) {
@@ -87,7 +148,9 @@ export function createScoresView(overlays) {
       buttons = [closeBtn];
     }
 
-    overlays.open('leaderboard', {
+    // Use a wider modal to fit two leaderboards side-by-side on desktop
+    const modalKind = state ? 'gameover' : 'leaderboard';
+    overlays.open(modalKind, {
       title: state ? 'Game Over' : 'High Scores',
       body: container,
       buttons

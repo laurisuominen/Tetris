@@ -70,6 +70,7 @@ export function createGame({ seed = 1, startLevel = 1 } = {}) {
     lockResets: 0,
     clearTimer: 0,
     pendingRows: [],
+    playTimeMs: 0,
 
     // 'rotate' only when the last successful action was a rotation. ANY
     // translation, gravity included, resets this — the contract tspin.js
@@ -323,6 +324,10 @@ export function step(state, dt, input = { actions: [], softDrop: false }) {
   // 1. Discrete actions. PAUSE and START are handled even when not playing.
   for (const action of input.actions) {
     applyAction(state, action, events, input.seed ?? 1);
+  }
+
+  if (state.fsm === STATES.PLAYING || state.fsm === STATES.LINE_CLEAR) {
+    state.playTimeMs += dt;
   }
 
   if (state.fsm === STATES.LINE_CLEAR) {

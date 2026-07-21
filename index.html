@@ -11,7 +11,7 @@
 <meta name="theme-color" content="#111318">
 <meta name="description" content="A Guideline-accurate Tetris built with vanilla JavaScript. Installable, offline-capable, touch-ready.">
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+      content="default-src 'self'; connect-src 'self' https://obkndxwkpodmcqumocfi.supabase.co; img-src 'self' data:; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; base-uri 'none'; form-action 'none'">
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
@@ -114,6 +114,7 @@
 
 <p class="sr-only" role="status" aria-live="polite" id="live-region"></p>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>
