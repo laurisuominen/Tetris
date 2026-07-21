@@ -12,7 +12,7 @@
 
 // Bump this on every shipped change — the worker is cache-first, so a stale
 // cache name would keep serving old files to anyone who already installed it.
-const CACHE = 'tetris-v2';
+const CACHE = 'tetris-v2.1';
 
 // The minimum needed to boot offline; everything else is cached on first fetch.
 const SHELL = [

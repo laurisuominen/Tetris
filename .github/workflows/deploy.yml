@@ -39,6 +39,9 @@ jobs:
             --exclude='_site' \
             --exclude='node_modules' \
             ./ _site/
+            
+          # Automate SW cache versioning by injecting the short Git SHA
+          sed -i "s/const CACHE = '.*'/const CACHE = 'tetris-${GITHUB_SHA::7}'/g" _site/sw.js
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
