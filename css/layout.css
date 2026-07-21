@@ -97,14 +97,8 @@
 
   /* Panels keep their base grid-area names (hold/stats/next), which now map to
      the three top-row columns. */
-  .panel { padding: var(--sp-2); gap: var(--sp-1); }
-  .panel__label { display: none; }   /* piece shapes are self-evident here */
 
-  .panel--stats { align-items: stretch; }
-  .stats { flex-direction: row; justify-content: space-between; gap: var(--sp-3); }
-  .panel__actions { display: none; }
-
-  /* Compact preview sizing lives in components.css, after the desktop default,
+  /* Compact preview sizing and panel overrides live in components.css, after the desktop default,
      so source order lets it win — a media query adds no specificity. */
 
   .controls { grid-area: controls; display: flex; }

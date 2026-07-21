@@ -45,6 +45,13 @@
     width: clamp(8rem, 44vw, 15rem);
     height: clamp(2.25rem, 8vh, 3.5rem);
   }
+
+  .panel { padding: var(--sp-2); gap: var(--sp-1); }
+  .panel__label { display: none; }   /* piece shapes are self-evident here */
+
+  .panel--stats { align-items: stretch; }
+  .stats { flex-direction: row; justify-content: space-between; gap: var(--sp-3); }
+  .panel__actions { display: none; }
 }
 
 /* Hold slot dims while the piece is locked out — spec §7. */
