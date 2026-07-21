@@ -1,4 +1,4 @@
-name: Deploy Tetris v2 to GitHub Pages
+name: Deploy Tetris to GitHub Pages
 
 on:
   push:
@@ -24,12 +24,30 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # The game now lives at the repo root, so it serves at the Pages base URL.
+      # Assemble a clean _site with just the web assets — this is a copy, not a
+      # build step (no bundler, no transpile), keeping the zero-tooling promise
+      # while excluding .git, CI config and editor files from the published site.
+      - name: Assemble site
+        run: |
+          mkdir _site
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.claude' \
+            --exclude='_site' \
+            --exclude='node_modules' \
+            ./ _site/
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './Tetris_v2'
+          path: './_site'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
