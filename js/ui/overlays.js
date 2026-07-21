@@ -26,6 +26,20 @@ export function createOverlays({ onAction }) {
 
   let lastFocused = null;
   let currentKind = null;
+  let openedAt = 0;
+
+  /**
+   * Ignore button activation for a beat after an overlay opens.
+   *
+   * This is the auto-restart fix. A hard-drop that tops out opens the game-over
+   * overlay; the very same Space keypress then activates whatever button just
+   * received focus — restarting instantly and skipping the score. The guard
+   * swallows that trailing keypress; a deliberate press a moment later works.
+   */
+  const ACTIVATION_GUARD_MS = 400;
+
+  /** Overlays that appear right after gameplay, where a reflexive key is likely. */
+  const isTerminalKind = (kind) => /^gameover|^leaderboard/.test(kind);
 
   function button(label, action, variant = '') {
     const node = el('button', {
@@ -33,12 +47,16 @@ export function createOverlays({ onAction }) {
       className: `btn ${variant}`.trim(),
       attrs: { type: 'button' }
     });
-    on(node, 'click', () => onAction(action));
+    on(node, 'click', () => {
+      if (performance.now() - openedAt < ACTIVATION_GUARD_MS) return;
+      onAction(action);
+    });
     return node;
   }
 
   function open(kind, { title, body, buttons }) {
     currentKind = kind;
+    openedAt = performance.now();
     lastFocused = document.activeElement;
 
     setText(titleEl, title);
@@ -56,8 +74,20 @@ export function createOverlays({ onAction }) {
     for (const node of buttons) actionsEl.appendChild(node);
 
     setHidden(root, false);
-    // Focus the primary action so Enter works without reaching for the mouse.
-    requestAnimationFrame(() => actionsEl.querySelector('button')?.focus());
+    requestAnimationFrame(() => {
+      // Prefer a real input (high-score entry) — typing a stray Space there is
+      // harmless. Otherwise, on terminal overlays focus the card rather than a
+      // button, so a reflexive Space has nothing to activate; elsewhere focus
+      // the primary action so Enter works without reaching for the mouse.
+      const input = card.querySelector('input, select, textarea');
+      if (input) { input.focus(); return; }
+      if (isTerminalKind(kind)) {
+        card.setAttribute('tabindex', '-1');
+        card.focus();
+      } else {
+        actionsEl.querySelector('button')?.focus();
+      }
+    });
   }
 
   function close() {
