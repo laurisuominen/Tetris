@@ -25,6 +25,7 @@ import { createScoresView } from './ui/scoresView.js';
 import { createBackgrounds } from './ui/background.js';
 import { createA11y } from './ui/a11y.js';
 import { createTouch } from './input/touch.js';
+import { createHaptics } from './input/haptics.js';
 import { createSynth } from './audio/synth.js';
 import { createSfx } from './audio/sfx.js';
 import { qs, setText, on } from './util/dom.js';
@@ -95,6 +96,16 @@ createSfx(engine, synth, settingsUI.getSettings);
 
 // Touch is wired after settings so swipe gestures can honour the swipe toggle.
 createTouch(engine, settingsUI.getSettings);
+
+// Haptics are driven from engine events, so keyboard and touch feel the same.
+const haptics = createHaptics(settingsUI.getSettings);
+engine.on('move', () => haptics.light());
+engine.on('rotate', () => haptics.light());
+engine.on('hold', () => haptics.light());
+engine.on('hardDrop', () => haptics.hardDrop());
+engine.on('clear', ({ lines }) => { if (lines > 0) haptics.medium(); });
+engine.on('levelUp', () => haptics.light());
+engine.on('topOut', () => haptics.gameOver());
 
 on(qs('#btn-pause'), 'click', () => {
   engine.dispatch(ACTIONS.PAUSE);

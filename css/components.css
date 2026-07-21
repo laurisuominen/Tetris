@@ -223,3 +223,41 @@
   gap: var(--sp-2);
   justify-content: center;
 }
+
+/* --- Settings form ------------------------------------------------------- */
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  text-align: left;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.settings-row__label {
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+}
+
+.settings-control {
+  background: var(--surface-1);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-sm);
+  padding: var(--sp-1) var(--sp-2);
+  font: inherit;
+  font-size: var(--fs-sm);
+}
+
+/* Larger, easier checkbox hit area on touch. */
+.settings-row input[type="checkbox"] {
+  width: 1.35rem;
+  height: 1.35rem;
+  accent-color: var(--accent);
+}
