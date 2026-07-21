@@ -131,7 +131,6 @@ export function createOverlays({ onAction }) {
         body: controlsText,
         buttons: [
           button('Play', 'start'),
-          button('Scores', 'scores', 'btn--ghost'),
           button('Settings', 'settings', 'btn--ghost'),
           link('About', 'about/', 'btn--ghost'),
           link('Leaderboard', 'leaderboard/', 'btn--ghost')
@@ -146,7 +145,6 @@ export function createOverlays({ onAction }) {
         buttons: [
           button('Resume', 'resume'),
           button('Restart', 'restart', 'btn--ghost'),
-          button('Scores', 'scores', 'btn--ghost'),
           button('Settings', 'settings', 'btn--ghost'),
           link('About', 'about/', 'btn--ghost'),
           link('Leaderboard', 'leaderboard/', 'btn--ghost')
