@@ -56,7 +56,6 @@ const backgrounds = createBackgrounds({
   canvasB: qs('#bg-b')
 });
 const synth = createSynth();
-createTouch(engine);
 
 const overlays = createOverlays({
   onAction(action) {
@@ -93,6 +92,13 @@ const settingsUI = createSettingsUI(overlays, (settings) => {
 });
 
 createSfx(engine, synth, settingsUI.getSettings);
+
+// Touch is wired after settings so swipe gestures can honour the swipe toggle.
+createTouch(engine, settingsUI.getSettings);
+
+on(qs('#btn-pause'), 'click', () => {
+  engine.dispatch(ACTIONS.PAUSE);
+});
 
 on(qs('#btn-settings'), 'click', () => {
   settingsUI.show();

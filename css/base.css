@@ -10,6 +10,35 @@ html, body {
   overscroll-behavior: none;    /* stops mobile pull-to-refresh killing a game */
 }
 
+/* --- Touch behaviour -----------------------------------------------------
+   Kills the mobile quirks that make a canvas game feel broken: the 300ms tap
+   delay, the blue tap-highlight flash, accidental text selection when mashing
+   buttons, and the iOS callout menu on long-press. Selection is re-enabled per
+   element where reading or copying matters (overlay body, leaderboard). */
+
+.app,
+.controls,
+.btn,
+.cbtn,
+canvas {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn,
+.cbtn {
+  touch-action: manipulation;   /* removes the 300ms double-tap-zoom delay */
+}
+
+/* Text the user may want to read slowly or copy stays selectable. */
+.overlay__body,
+.scores-list {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 body {
   background: var(--bg-base);
   color: var(--text-primary);

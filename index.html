@@ -2,11 +2,25 @@
 <html lang="en" data-motion="auto">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- user-scalable=no / maximum-scale=1 stop accidental pinch-zoom and the
+     double-tap zoom gesture from firing mid-game. This is a deliberate
+     game-UX trade against WCAG 1.4.4 (zoom to 200%); iOS Safari ignores it
+     for accessibility anyway. See README "Accessibility notes". -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="A Guideline-accurate Tetris built with vanilla JavaScript.">
+<meta name="theme-color" content="#111318">
+<meta name="description" content="A Guideline-accurate Tetris built with vanilla JavaScript. Installable, offline-capable, touch-ready.">
 <meta http-equiv="Content-Security-Policy"
       content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tetris">
+<meta name="mobile-web-app-capable" content="yes">
+
 <title>Tetris</title>
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/base.css">
@@ -63,18 +77,28 @@
       </div>
     </dl>
     <p class="badge" id="badge" hidden></p>
-    <div style="display: flex; gap: 8px;">
+    <div class="panel__actions">
+      <button class="btn btn--ghost" id="btn-pause" type="button">Pause</button>
       <button class="btn btn--ghost" id="btn-scores" type="button">Scores</button>
       <button class="btn btn--ghost" id="btn-settings" type="button">Settings</button>
     </div>
   </section>
 
-  <div class="touchpad" id="touchpad" hidden>
-    <button class="tbtn" type="button" data-action="ROTATE_CCW" aria-label="Rotate counter-clockwise">⟲</button>
-    <button class="tbtn" type="button" data-action="HOLD" aria-label="Hold">⇩</button>
-    <button class="tbtn" type="button" data-action="PAUSE" aria-label="Pause">⏸</button>
-    <button class="tbtn" type="button" data-action="ROTATE_CW" aria-label="Rotate clockwise">⟳</button>
-  </div>
+  <!-- On-screen controls. Shown on coarse-pointer (touch) devices; hidden on
+       desktop where the keyboard is used. Every target is >= 48px. -->
+  <nav class="controls" id="controls" aria-label="Touch controls">
+    <div class="controls__cluster controls__cluster--move">
+      <button class="cbtn cbtn--move" type="button" data-hold data-action="MOVE_LEFT" aria-label="Move left">‹</button>
+      <button class="cbtn cbtn--soft" type="button" data-hold data-action="SOFT_DROP" aria-label="Soft drop">⌄</button>
+      <button class="cbtn cbtn--move" type="button" data-hold data-action="MOVE_RIGHT" aria-label="Move right">›</button>
+    </div>
+    <div class="controls__cluster controls__cluster--action">
+      <button class="cbtn cbtn--hold" type="button" data-action="HOLD" aria-label="Hold piece">Hold</button>
+      <button class="cbtn cbtn--rot" type="button" data-action="ROTATE_CCW" aria-label="Rotate counter-clockwise">⟲</button>
+      <button class="cbtn cbtn--rot" type="button" data-action="ROTATE_CW" aria-label="Rotate clockwise">⟳</button>
+      <button class="cbtn cbtn--drop" type="button" data-action="HARD_DROP" aria-label="Hard drop">Drop</button>
+    </div>
+  </nav>
 
 </main>
 

@@ -106,24 +106,75 @@
   color: var(--text-primary);
 }
 
+/* Row of secondary actions in the stats panel (pause/scores/settings). */
+.panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
 /* --- Touch controls ------------------------------------------------------ */
 
-/* Real <button> elements, so they are keyboard- and screen-reader-reachable
-   rather than gesture-only. */
-.tbtn {
+/* Two thumb-reachable clusters: movement on the left, actions on the right.
+   Pinned to the bottom with safe-area padding so it clears the iOS home bar. */
+.controls {
+  width: 100%;
+  justify-content: space-between;
+  align-items: end;
+  gap: var(--sp-3);
+  padding: var(--sp-1) var(--sp-1) calc(var(--sp-1) + env(safe-area-inset-bottom, 0px));
+}
+
+.controls__cluster {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.controls__cluster--move   { grid-template-columns: repeat(3, 1fr); }
+.controls__cluster--action { grid-template-columns: repeat(2, 1fr); }
+
+/* Real <button> elements, so they stay keyboard- and screen-reader-reachable
+   rather than gesture-only. Every target clears the WCAG 48px minimum. */
+.cbtn {
+  min-width: 3rem;
   min-height: 3rem;
-  font-size: var(--fs-lg);
+  height: clamp(3rem, 8.5vw, 4.25rem);
+  display: grid;
+  place-items: center;
+  font-size: var(--fs-xl);
+  font-weight: 600;
   color: var(--text-secondary);
   background: var(--surface-1);
   border: 1px solid var(--border-subtle);
   border-radius: var(--r-md);
-  touch-action: manipulation;
-  user-select: none;
+  /* No transition on :active — touch feedback must feel instant. */
 }
 
-.tbtn:active {
+/* .pressed is toggled by the touch handler on touchstart/touchend, which is
+   more reliable on mobile than :active (which can stick or lag). */
+.cbtn.pressed,
+.cbtn:active {
   background: var(--surface-2);
   color: var(--text-primary);
+  transform: translateY(1px);
+}
+
+.cbtn--soft { font-size: var(--fs-2xl); }
+
+.cbtn--rot  { color: var(--text-primary); }
+
+.cbtn--drop {
+  background: var(--accent);
+  color: var(--bg-base);
+  font-size: var(--fs-sm);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.cbtn--hold {
+  font-size: var(--fs-sm);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
 }
 
 /* --- Overlays ------------------------------------------------------------ */
