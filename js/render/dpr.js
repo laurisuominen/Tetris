@@ -23,8 +23,6 @@ export function sizeCanvas(canvas, cssWidth, cssHeight, dpr = getDpr()) {
     canvas.width = width;
     canvas.height = height;
   }
-  canvas.style.width = `${cssWidth}px`;
-  canvas.style.height = `${cssHeight}px`;
 
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

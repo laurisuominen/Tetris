@@ -79,6 +79,8 @@ export function createPreviews({ holdCanvas, nextCanvas, palette }) {
    */
   function renderNext(types) {
     const { w, h } = boxOf(nextCanvas);
+    console.log("NEXTCANVAS", w, h, nextCanvas.getBoundingClientRect());
+    
     const dpr = getDpr();
     const ctx = sizeCanvas(nextCanvas, w, h, dpr);
     ctx.clearRect(0, 0, w, h);
