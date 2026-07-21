@@ -28,7 +28,10 @@ import { createTouch } from './input/touch.js';
 import { createHaptics } from './input/haptics.js';
 import { createSynth } from './audio/synth.js';
 import { createSfx } from './audio/sfx.js';
+import { registerServiceWorker } from './pwa.js';
 import { qs, setText, on } from './util/dom.js';
+
+registerServiceWorker();
 
 const palette = createPalette();
 const keyboard = createKeyboard();
