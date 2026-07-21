@@ -280,18 +280,18 @@
    specificity, so source order is what lets it win. */
 @media (max-width: 900px), (orientation: portrait), (pointer: coarse) {
   .panel--hold .preview {
-    width: clamp(2.75rem, 12vw, 4rem);
-    height: clamp(2rem, 7vh, 3rem);
+    width: clamp(2.5rem, 12vw, 4rem);
+    height: clamp(2.5rem, 12vw, 4rem);
   }
   .panel--next .preview {
-    width: clamp(8rem, 44vw, 15rem);
-    height: clamp(2.25rem, 8vh, 3.5rem);
+    width: clamp(2.5rem, 12vw, 4rem);
+    height: clamp(10rem, 30vh, 18rem);
   }
 
   .panel { padding: var(--sp-2); gap: var(--sp-1); }
   .panel__label { display: none; }   /* piece shapes are self-evident here */
 
   .panel--stats { align-items: stretch; }
-  .stats { flex-direction: row; justify-content: space-between; gap: var(--sp-3); }
-  .panel__actions { display: none; }
+  .stats { flex-direction: row; justify-content: center; gap: var(--sp-4); }
+  .panel__actions { display: flex; justify-content: center; }
 }

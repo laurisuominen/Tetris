@@ -83,13 +83,12 @@
    Field takes the remaining row (minmax(0,1fr)) so nothing ever scrolls. */
 @media (max-width: 900px), (orientation: portrait), (pointer: coarse) {
   .app {
-    /* Three columns in the top row so hold / stats / next sit side by side.
-       Previously all three shared one "topbar" cell and overlapped. */
+    /* Stats spans the top, hold/field/next sit in the middle row. */
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-rows: auto minmax(0, 1fr) auto;
     grid-template-areas:
-      "hold     stats    next"
-      "field    field    field"
+      "stats    stats    stats"
+      "hold     field    next"
       "controls controls controls";
     padding: var(--sp-2);
     gap: var(--sp-2);
