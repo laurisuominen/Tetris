@@ -121,7 +121,11 @@ export function createOverlays({ onAction }) {
       open('start', {
         title: 'Tetris',
         body: controlsText,
-        buttons: [button('Play', 'start')]
+        buttons: [
+          button('Play', 'start'),
+          button('Scores', 'scores', 'btn--ghost'),
+          button('Settings', 'settings', 'btn--ghost')
+        ]
       });
     },
 
@@ -129,7 +133,12 @@ export function createOverlays({ onAction }) {
       open('paused', {
         title: 'Paused',
         body: controlsText,
-        buttons: [button('Resume', 'resume'), button('Restart', 'restart', 'btn--ghost')]
+        buttons: [
+          button('Resume', 'resume'),
+          button('Restart', 'restart', 'btn--ghost'),
+          button('Scores', 'scores', 'btn--ghost'),
+          button('Settings', 'settings', 'btn--ghost')
+        ]
       });
     },
 

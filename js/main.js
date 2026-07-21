@@ -76,6 +76,12 @@ const overlays = createOverlays({
         engine.dispatch(ACTIONS.RESUME);
         overlays.close();
         break;
+      case 'scores':
+        scoresView.showLeaderboardOnly();
+        break;
+      case 'settings':
+        settingsUI.show();
+        break;
       default:
         break;
     }

@@ -6,6 +6,9 @@ export function createSynth() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (AudioContext) {
       ctx = new AudioContext();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
     }
   }
 
@@ -39,10 +42,12 @@ export function createSynth() {
   // Bind to first interaction to initialize audio context (spec requirement for autoplay)
   const onInteract = () => {
     init();
-    window.removeEventListener('pointerdown', onInteract);
+    window.removeEventListener('touchstart', onInteract);
+    window.removeEventListener('click', onInteract);
     window.removeEventListener('keydown', onInteract);
   };
-  window.addEventListener('pointerdown', onInteract, { once: true });
+  window.addEventListener('touchstart', onInteract, { once: true });
+  window.addEventListener('click', onInteract, { once: true });
   window.addEventListener('keydown', onInteract, { once: true });
 
   return { playTone };

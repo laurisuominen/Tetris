@@ -102,8 +102,7 @@
 
   .panel--stats { align-items: stretch; }
   .stats { flex-direction: row; justify-content: space-between; gap: var(--sp-3); }
-  .panel__actions { justify-content: center; }
-  .panel__actions .btn { padding: var(--sp-1) var(--sp-2); font-size: var(--fs-xs); }
+  .panel__actions { display: none; }
 
   /* Compact preview sizing lives in components.css, after the desktop default,
      so source order lets it win — a media query adds no specificity. */
