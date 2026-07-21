@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#111318">
+<meta name="description" content="About this Tetris — controls, rules and how it was built.">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+<title>About — Tetris</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/pages.css">
+</head>
+<body>
+<main class="page">
+
+  <nav class="page__nav">
+    <a class="link link--home" href="../">Back to game</a>
+    <a class="link" href="../leaderboard/">Leaderboard</a>
+  </nav>
+
+  <h1 class="page__title">About</h1>
+  <p class="page__lead">
+    A Guideline-accurate Tetris built from scratch in vanilla JavaScript — no
+    frameworks, no build step, no dependencies. It installs to your home screen
+    and plays fully offline.
+  </p>
+
+  <h2>How to play</h2>
+  <p>
+    Clear horizontal lines by fitting the falling tetrominoes together. Filling
+    a line removes it; clearing several at once, or clearing with a T-spin,
+    scores more. The game speeds up every few lines.
+  </p>
+
+  <h2>Keyboard controls</h2>
+  <ul class="keylist">
+    <li><span>Move left / right</span><b>← →</b></li>
+    <li><span>Soft drop</span><b>↓</b></li>
+    <li><span>Hard drop</span><b>Space</b></li>
+    <li><span>Rotate clockwise</span><b>↑ or X</b></li>
+    <li><span>Rotate counter-clockwise</span><b>Z or Ctrl</b></li>
+    <li><span>Rotate 180°</span><b>A</b></li>
+    <li><span>Hold</span><b>C or Shift</b></li>
+    <li><span>Pause</span><b>P or Esc</b></li>
+  </ul>
+
+  <h2>On a phone</h2>
+  <p>
+    Use the on-screen buttons, or turn on swipe gestures in Settings: drag to
+    move, tap to rotate, flick down to hard-drop. Vibration feedback and swipe
+    controls can each be toggled.
+  </p>
+
+  <h2>Notes</h2>
+  <p>
+    Two deliberate deviations from the official Guideline: levels advance every
+    5 lines instead of 10, and 180° rotation has wall kicks (the Guideline
+    defines none). Scores are stored only in your browser.
+  </p>
+
+  <nav class="page__nav">
+    <a class="pagebtn" href="../">Play</a>
+  </nav>
+
+</main>
+</body>
+</html>

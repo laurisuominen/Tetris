@@ -1,0 +1,132 @@
+/**
+ * Styles for the standalone content pages (about, leaderboard).
+ *
+ * These pages scroll, so they load tokens.css + this file rather than the
+ * game's base.css/layout.css (which lock the viewport). Self-contained reset
+ * here keeps them independent of the game shell.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+
+body {
+  min-height: 100svh;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+.page {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 5vw, 3rem) var(--sp-4)
+           calc(var(--sp-8) + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.page__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  align-items: center;
+}
+
+.page__title {
+  font-size: var(--fs-2xl);
+  letter-spacing: -0.02em;
+}
+
+.page__lead {
+  color: var(--text-secondary);
+}
+
+.page h2 {
+  font-size: var(--fs-lg);
+  margin-top: var(--sp-4);
+}
+
+.page p { color: var(--text-secondary); }
+
+.link {
+  color: var(--accent-strong);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+}
+.link:hover { text-decoration: underline; }
+
+.link--home::before { content: "‹ "; }
+
+.pagebtn {
+  display: inline-block;
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--accent);
+  color: var(--bg-base);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+}
+.pagebtn:hover { background: var(--accent-strong); }
+
+/* --- Controls reference list (about) ------------------------------------- */
+
+.keylist {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-2);
+}
+.keylist li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+.keylist b { color: var(--text-primary); font-weight: 600; }
+
+/* --- Leaderboard --------------------------------------------------------- */
+
+.scores {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.scores th {
+  text-align: left;
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: var(--sp-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.scores td {
+  padding: var(--sp-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.scores .num { text-align: right; }
+.scores .rank { color: var(--text-muted); width: 3ch; }
+.scores .initials { font-weight: 700; letter-spacing: 0.15em; }
+.scores__score { color: var(--accent-strong); font-weight: 600; }
+
+.empty {
+  padding: var(--sp-6);
+  text-align: center;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--r-lg);
+}

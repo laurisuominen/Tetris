@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#111318">
+<meta name="description" content="Local high scores for Tetris.">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+<title>High Scores — Tetris</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/pages.css">
+</head>
+<body>
+<main class="page">
+
+  <nav class="page__nav">
+    <a class="link link--home" href="../">Back to game</a>
+    <a class="link" href="../about/">About</a>
+  </nav>
+
+  <h1 class="page__title">High Scores</h1>
+  <p class="page__lead">Your best games, saved in this browser.</p>
+
+  <div id="scores-root"></div>
+
+  <nav class="page__nav">
+    <a class="pagebtn" href="../">Play</a>
+  </nav>
+
+</main>
+
+<script type="module" src="../js/pages/leaderboard.js"></script>
+</body>
+</html>
