@@ -48,32 +48,55 @@ export function createPreviews({ holdCanvas, nextCanvas, palette }) {
   let lastNextVersion = -1;
   let lastCanHold = null;
 
+  /** The canvas's CSS box, which CSS sizes definitely (never from the backing). */
+  function boxOf(canvas) {
+    const r = canvas.getBoundingClientRect();
+    return {
+      w: Math.max(Math.round(r.width), 1),
+      h: Math.max(Math.round(r.height), 1)
+    };
+  }
+
   function renderHold(type, canHold) {
-    const cssWidth = holdCanvas.clientWidth || 120;
-    const cssHeight = Math.round(cssWidth * 0.75);
+    const { w, h } = boxOf(holdCanvas);
     const dpr = getDpr();
-    const ctx = sizeCanvas(holdCanvas, cssWidth, cssHeight, dpr);
-    ctx.clearRect(0, 0, cssWidth, cssHeight);
+    const ctx = sizeCanvas(holdCanvas, w, h, dpr);
+    ctx.clearRect(0, 0, w, h);
 
     holdCanvas.dataset.locked = String(!canHold);
     if (!type) return;
 
-    const cell = fitPreview(cssWidth * 0.8, cssHeight * 0.8, 4, 3, dpr);
-    drawPieceCentred(ctx, type, 0, 0, cssWidth, cssHeight, cell, palette);
+    const cell = fitPreview(w * 0.8, h * 0.8, 4, 3, dpr);
+    drawPieceCentred(ctx, type, 0, 0, w, h, cell, palette);
   }
 
+  /**
+   * Next queue. The layout adapts to the box CSS gives it: a tall box (desktop
+   * side panel) stacks the pieces vertically; a wide box (mobile top strip)
+   * lays them in a row. Sizing is bounded by CSS in both cases, so the preview
+   * can never blow up and crush the board — which is exactly what an
+   * unbounded `width × 3.1` height used to do on a phone.
+   */
   function renderNext(types) {
-    const cssWidth = nextCanvas.clientWidth || 120;
-    const slotHeight = Math.round(cssWidth * 0.62);
-    const cssHeight = slotHeight * NEXT_COUNT;
+    const { w, h } = boxOf(nextCanvas);
     const dpr = getDpr();
-    const ctx = sizeCanvas(nextCanvas, cssWidth, cssHeight, dpr);
-    ctx.clearRect(0, 0, cssWidth, cssHeight);
+    const ctx = sizeCanvas(nextCanvas, w, h, dpr);
+    ctx.clearRect(0, 0, w, h);
 
-    const cell = fitPreview(cssWidth * 0.7, slotHeight * 0.7, 4, 2, dpr);
-    types.slice(0, NEXT_COUNT).forEach((type, i) => {
-      drawPieceCentred(ctx, type, 0, i * slotHeight, cssWidth, slotHeight, cell, palette);
-    });
+    const list = types.slice(0, NEXT_COUNT);
+    if (list.length === 0) return;
+
+    if (h >= w) {
+      // Vertical column.
+      const slot = h / NEXT_COUNT;
+      const cell = fitPreview(w * 0.7, slot * 0.72, 4, 2, dpr);
+      list.forEach((type, i) => drawPieceCentred(ctx, type, 0, i * slot, w, slot, cell, palette));
+    } else {
+      // Horizontal row.
+      const slot = w / list.length;
+      const cell = fitPreview(slot * 0.8, h * 0.72, 4, 2, dpr);
+      list.forEach((type, i) => drawPieceCentred(ctx, type, i * slot, 0, slot, h, cell, palette));
+    }
   }
 
   return {

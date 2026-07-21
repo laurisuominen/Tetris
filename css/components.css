@@ -19,9 +19,32 @@
   color: var(--text-muted);
 }
 
-.preview {
-  width: 100%;
-  height: auto;
+/*
+ * Preview canvases get DEFINITE, viewport-bounded sizes — never height:auto,
+ * which derives height from the backing store and let the Next queue grow to
+ * `width × 3.1` (≈520px on a phone, crushing the board; ≈580px on a laptop,
+ * pushing the panel below the fold). previews.js reads whichever box it's given
+ * and lays the pieces out vertically (tall box) or horizontally (wide box).
+ *
+ * Desktop default: narrow, tall — a vertical column, capped at ~38vh so a short
+ * laptop never overflows.
+ */
+.preview { display: block; width: 100%; }
+.panel--hold .preview { height: clamp(3rem, 9vh, 5.5rem); }
+.panel--next .preview { height: clamp(10rem, 38vh, 24rem); }
+
+/* Touch layout: a small Hold and a wide, short Next strip (drawn horizontally).
+   This MUST come after the desktop defaults above — a media query adds no
+   specificity, so source order is what lets it win. */
+@media (max-width: 900px), (orientation: portrait), (pointer: coarse) {
+  .panel--hold .preview {
+    width: clamp(2.75rem, 12vw, 4rem);
+    height: clamp(2rem, 7vh, 3rem);
+  }
+  .panel--next .preview {
+    width: clamp(8rem, 44vw, 15rem);
+    height: clamp(2.25rem, 8vh, 3.5rem);
+  }
 }
 
 /* Hold slot dims while the piece is locked out — spec §7. */

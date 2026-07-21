@@ -83,38 +83,32 @@
    Field takes the remaining row (minmax(0,1fr)) so nothing ever scrolls. */
 @media (max-width: 900px), (orientation: portrait), (pointer: coarse) {
   .app {
-    grid-template-columns: 1fr;
+    /* Three columns in the top row so hold / stats / next sit side by side.
+       Previously all three shared one "topbar" cell and overlapped. */
+    grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-rows: auto minmax(0, 1fr) auto;
     grid-template-areas:
-      "topbar"
-      "field"
-      "controls";
+      "hold     stats    next"
+      "field    field    field"
+      "controls controls controls";
     padding: var(--sp-2);
     gap: var(--sp-2);
   }
 
-  .panel--hold,
-  .panel--next,
-  .panel--stats {
-    grid-area: topbar;
-  }
+  /* Panels keep their base grid-area names (hold/stats/next), which now map to
+     the three top-row columns. */
+  .panel { padding: var(--sp-2); gap: var(--sp-1); }
+  .panel__label { display: none; }   /* piece shapes are self-evident here */
 
-  .app > .panel--hold  { justify-self: start; }
-  .app > .panel--next  { justify-self: center; }
-  .app > .panel--stats { justify-self: end; }
+  .panel--stats { align-items: stretch; }
+  .stats { flex-direction: row; justify-content: space-between; gap: var(--sp-3); }
+  .panel__actions { justify-content: center; }
+  .panel__actions .btn { padding: var(--sp-1) var(--sp-2); font-size: var(--fs-xs); }
 
-  .panel {
-    flex-direction: row;
-    align-items: center;
-    gap: var(--sp-2);
-  }
+  /* Compact preview sizing lives in components.css, after the desktop default,
+     so source order lets it win — a media query adds no specificity. */
 
-  .stats { flex-direction: row; gap: var(--sp-3); }
-
-  .controls {
-    grid-area: controls;
-    display: flex;
-  }
+  .controls { grid-area: controls; display: flex; }
 
   .field__slab { padding: var(--sp-1); }
 }
