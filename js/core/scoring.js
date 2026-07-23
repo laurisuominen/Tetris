@@ -11,7 +11,7 @@ const LINE_POINTS = [0, 100, 300, 500, 800];
 
 /** T-spin bonuses — spec §8. Index by line count. */
 const TSPIN_POINTS = [400, 800, 1200, 1600];
-const TSPIN_MINI_POINTS = [100, 100, 200, 200];
+const TSPIN_MINI_POINTS = [100, 200, 1200, 0];
 
 /** Lines cleared per level. See LINES_PER_LEVEL note below. */
 const LINES_PER_LEVEL = 5;
