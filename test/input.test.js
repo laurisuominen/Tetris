@@ -4,9 +4,10 @@
  */
 
 import { describe, it, expect } from './harness.js';
-import { createAutoRepeat } from '../js/input/autorepeat.js';
-import { fitPlayfield, fitPreview, backingSize, crispOffset } from '../js/render/geometry.js';
-import { COLS, VISIBLE_ROWS, TIMESTEP_MS } from '../js/core/constants.js';
+import { createAutoRepeat } from '../js/shared/input/autorepeat.js';
+import { fitPreview, backingSize, crispOffset } from '../js/shared/render/geometry.js';
+import { fitPlayfield } from '../js/games/tetris/render/geometry.js';
+import { COLS, VISIBLE_ROWS, TIMESTEP_MS } from '../js/games/tetris/core/constants.js';
 
 describe('DAS and ARR', () => {
   /**
@@ -91,7 +92,7 @@ describe('DAS and ARR', () => {
   });
 
   it('treats both directions held as neither', () => {
-    const repeat = createAutoRepeat();
+    const repeat = createAutoRepeat({ das: 170, arr: 50 });
     expect(repeat.tick(TIMESTEP_MS, 0)).toBe(0);
   });
 });

@@ -295,3 +295,46 @@
   .stats { flex-direction: row; justify-content: center; gap: var(--sp-4); }
   .panel__actions { display: flex; justify-content: center; }
 }
+
+/* --- Short desktop windows ------------------------------------------------ */
+
+/**
+ * A laptop browser that isn't full screen.
+ *
+ * The side column stacks Next (~306px of previews), the stats list and the
+ * action buttons. At its roomiest that wants ~775px of column, so on anything
+ * under roughly 820px tall it ran off the bottom of the window while the
+ * playfield beside it still looked fine. Laying the three stats across instead
+ * of down, and tightening the buttons, brings the column back inside the
+ * viewport without dropping a single control.
+ *
+ * Scoped to fine pointers and wide viewports so it never competes with the
+ * touch layout, which solves the same problem by moving stats to a top bar.
+ * Placed at the end of this file deliberately: it overrides .stats and .btn
+ * above, and a media query adds no specificity.
+ */
+@media (max-height: 820px) and (min-width: 901px) and (pointer: fine) {
+  .stats {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: var(--sp-2);
+  }
+
+  .stat { gap: 0; }
+
+  .panel__actions { gap: var(--sp-1); }
+
+  .panel__actions .btn { padding: var(--sp-1) var(--sp-2); }
+}
+
+/**
+ * Tighter still, for a genuinely small desktop window (~500px tall).
+ *
+ * Same reasoning as above, one step further: trim the panel padding and the
+ * button padding. Kept off coarse pointers, where shrinking these would eat
+ * into the 48px touch-target floor.
+ */
+@media (max-height: 560px) and (min-width: 901px) and (pointer: fine) {
+  .panel { padding: var(--sp-2); }
+  .panel__actions .btn { padding: 2px var(--sp-2); }
+}

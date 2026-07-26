@@ -10,25 +10,25 @@ import { describe, it, expect } from './harness.js';
 import {
   COLS, TOTAL_ROWS, VISIBLE_ROWS, STATE_SPAWN, STATE_R, STATE_180, STATE_L,
   ROTATE_CW, ROTATE_CCW, ROTATE_HALF, MAX_LOCK_RESETS
-} from '../js/core/constants.js';
+} from '../js/games/tetris/core/constants.js';
 import {
   createBoard, boardFromRows, boardToRows, findFullRows, removeRows,
   isOccupied, lockCells, getCell
-} from '../js/core/board.js';
-import { SHAPES, BOX_SIZE, SPAWN } from '../js/core/tetrominoes.js';
-import { KICKS_JLSTZ, KICKS_I, getKicks, targetState } from '../js/core/kicks.js';
-import { createPiece, toBoardCells, isValid, dropDistance, ghostOf } from '../js/core/piece.js';
-import { tryRotate } from '../js/core/srs.js';
-import { mulberry32 } from '../js/core/rng.js';
-import { createQueue, pull, peek } from '../js/core/queue.js';
-import { dropIntervalMs, softDropIntervalMs } from '../js/core/gravity.js';
+} from '../js/games/tetris/core/board.js';
+import { SHAPES, BOX_SIZE, SPAWN } from '../js/games/tetris/core/tetrominoes.js';
+import { KICKS_JLSTZ, KICKS_I, getKicks, targetState } from '../js/games/tetris/core/kicks.js';
+import { createPiece, toBoardCells, isValid, dropDistance, ghostOf } from '../js/games/tetris/core/piece.js';
+import { tryRotate } from '../js/games/tetris/core/srs.js';
+import { mulberry32 } from '../js/shared/util/rng.js';
+import { createQueue, pull, peek } from '../js/games/tetris/core/queue.js';
+import { dropIntervalMs, softDropIntervalMs } from '../js/games/tetris/core/gravity.js';
 import {
   scoreClear, levelFor, isDifficult, softDropPoints, hardDropPoints,
   TSPIN_NONE, TSPIN_MINI, TSPIN_FULL
-} from '../js/core/scoring.js';
-import { classifyTSpin } from '../js/core/tspin.js';
-import { STATES, EVENTS, transition, acceptsGameplayInput } from '../js/core/fsm.js';
-import { createGame, step, applyAction, ACTIONS } from '../js/core/game.js';
+} from '../js/games/tetris/core/scoring.js';
+import { classifyTSpin } from '../js/games/tetris/core/tspin.js';
+import { STATES, EVENTS, transition, acceptsGameplayInput } from '../js/games/tetris/core/fsm.js';
+import { createGame, step, applyAction, ACTIONS } from '../js/games/tetris/core/game.js';
 
 /* -------------------------------------------------------------------------- */
 
