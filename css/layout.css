@@ -19,16 +19,32 @@
   height: 100vh;
   height: 100svh;
   height: 100dvh;
-  padding: var(--sp-4);
+  /* Slightly more vertical inset than horizontal: the playfield is height-bound
+     on any laptop window, so without it the board sits flush against the top
+     and bottom edges and reads as bigger than the window. Short viewports claw
+     this back in the max-height query at the end of the file. */
+  padding: var(--sp-5) var(--sp-4);
   gap: var(--sp-4);
   display: grid;
   container-type: inline-size;
   align-items: center;
   justify-content: center;
 
-  /* Wide default: hold | field | next over stats. */
+  /* Wide default: hold | field | next over stats.
+   *
+   * The rows are minmax(0, 1fr), not auto. They must be bounded, because the
+   * playfield spans both and its sizing is circular: JS sets canvas.width and
+   * canvas.height from the CSS box, and an `auto` track then sizes itself to
+   * the canvas's *intrinsic* height — so the board inflates past the viewport
+   * and its bottom rows fall off the screen on any window shorter than about
+   * 820px. A 1fr track has an auto minimum, which reintroduces the same floor,
+   * so the explicit minmax(0, ...) is what actually does the work. The touch
+   * layout below has always done this; the desktop layout had not.
+   *
+   * The panels are align-self: start, so equal-height tracks change only where
+   * the stats block begins, not how large anything is. */
   grid-template-columns: var(--panel-w) auto var(--panel-w);
-  grid-template-rows: auto auto;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-areas:
     "hold field next"
     "hold field stats";
@@ -104,6 +120,10 @@
 
   .field__slab { padding: var(--sp-1); }
 }
+
+/* The short-desktop-window compaction lives at the end of components.css,
+   after the panel defaults it overrides — a media query adds no specificity,
+   so source order is what decides. */
 
 /* Very short viewports (landscape phones): reclaim every vertical pixel. */
 @media (max-height: 520px) {

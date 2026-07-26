@@ -46,6 +46,15 @@ export function createRenderer({ container, boardCanvas, pieceCanvas, fxCanvas, 
       canvas.style.left = '50%';
       canvas.style.top = '50%';
       canvas.style.transform = 'translate(-50%, -50%)';
+
+      // Pin the CSS box to the fitted size. Without this the stylesheet's
+      // width/height:100% stretches the element to the whole stack, which is
+      // NOT 1:2 — the slab's aspect-ratio includes its padding — so the board
+      // was drawn at the fitted size and then scaled up by a few percent,
+      // unevenly. That undid the device-pixel snapping fitPlayfield exists to
+      // provide: cells came out slightly tall and slightly blurred.
+      canvas.style.width = `${fit.width}px`;
+      canvas.style.height = `${fit.height}px`;
     }
 
     ctxBoard = sizeCanvas(boardCanvas, fit.width, fit.height, dpr);
