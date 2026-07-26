@@ -11,6 +11,7 @@
 import { run } from './harness.js';
 import './core.test.js';
 import './input.test.js';
+import './engine.test.js';
 
 const GREEN = '[32m';
 const RED = '[31m';

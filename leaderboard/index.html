@@ -4,34 +4,27 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#111318">
-<meta name="description" content="Local high scores for Tetris.">
-<meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; connect-src 'self' https://obkndxwkpodmcqumocfi.supabase.co; img-src 'self' data:; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; base-uri 'none'; form-action 'none'">
-<title>High Scores — Tetris</title>
-<link rel="stylesheet" href="../css/tokens.css">
-<link rel="stylesheet" href="../css/pages.css">
+<!-- This page moved when the site became an arcade. GitHub Pages has no
+     server-side redirects, so the old URL keeps working as a stub. The
+     visible link is the fallback for anyone with meta-refresh disabled. -->
+<meta http-equiv="refresh" content="0; url=/games/tetris/leaderboard/">
+<link rel="canonical" href="/games/tetris/leaderboard/">
+<meta name="robots" content="noindex">
+<title>Moved — Tetris High Scores</title>
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/pages.css">
 </head>
 <body>
 <main class="page">
-
+  <h1 class="page__title">This page moved</h1>
+  <p class="page__lead">
+    Tetris now lives inside the arcade.
+    <a class="link" href="/games/tetris/leaderboard/">Continue to Tetris high scores</a>.
+  </p>
   <nav class="page__nav">
-    <a class="link link--home" href="../">Back to game</a>
-    <a class="link" href="../about/">About</a>
+    <a class="pagebtn" href="/games/tetris/">Play Tetris</a>
+    <a class="link" href="/">Arcade</a>
   </nav>
-
-  <h1 class="page__title">High Scores</h1>
-  <p class="page__lead">Your best games, saved in this browser.</p>
-
-  <div id="scores-root"></div>
-
-  <nav class="page__nav">
-    <a class="pagebtn" href="../">Play</a>
-  </nav>
-
 </main>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script type="module" src="../js/pages/leaderboard.js"></script>
 </body>
 </html>

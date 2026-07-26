@@ -1,120 +1,54 @@
 <!doctype html>
-<html lang="en" data-motion="auto">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<!-- user-scalable=no / maximum-scale=1 stop accidental pinch-zoom and the
-     double-tap zoom gesture from firing mid-game. This is a deliberate
-     game-UX trade against WCAG 1.4.4 (zoom to 200%); iOS Safari ignores it
-     for accessibility anyway. See README "Accessibility notes". -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<!-- Standard zoomable viewport. The games lock zoom so a pinch cannot fire
+     mid-play; this page is an ordinary document and has no reason to, so it
+     stays WCAG 1.4.4 clean. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#111318">
-<meta name="description" content="A Guideline-accurate Tetris built with vanilla JavaScript. Installable, offline-capable, touch-ready.">
+<meta name="description" content="A small browser arcade — vanilla JavaScript games that install, play offline and work on touch.">
+<!-- Tighter than the games': the hub talks to nothing off-origin. -->
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; connect-src 'self' https://obkndxwkpodmcqumocfi.supabase.co; img-src 'self' data:; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; base-uri 'none'; form-action 'none'">
+      content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Tetris">
+<meta name="apple-mobile-web-app-title" content="Arcade">
 <meta name="mobile-web-app-capable" content="yes">
 
-<title>Tetris</title>
+<title>Arcade</title>
 <link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/base.css">
-<link rel="stylesheet" href="css/layout.css">
-<link rel="stylesheet" href="css/components.css">
-<link rel="stylesheet" href="css/backgrounds.css">
-<link rel="stylesheet" href="css/animations.css">
-<script src="js/file-guard.js"></script>
+<link rel="stylesheet" href="css/hub.css">
 </head>
 <body>
 
-<canvas id="bg-a" class="backdrop" aria-hidden="true"></canvas>
-<canvas id="bg-b" class="backdrop" aria-hidden="true"></canvas>
-<div class="backdrop-scrim" aria-hidden="true"></div>
+<div class="shell">
 
-<main class="app" id="app">
+  <header class="masthead">
+    <h1 class="masthead__title">Arcade</h1>
+    <p class="masthead__lead">
+      Small games built in vanilla JavaScript — no framework, no build step.
+      They install as an app and play offline.
+    </p>
+  </header>
 
-  <section class="panel panel--hold" aria-labelledby="hold-label">
-    <h2 class="panel__label" id="hold-label">Hold</h2>
-    <canvas id="hold-canvas" class="preview" role="img"
-            aria-label="Held piece"></canvas>
-  </section>
+  <main>
+    <h2 class="sr-only">Games</h2>
+    <nav class="games" id="games" aria-label="Games"></nav>
+  </main>
 
-  <section class="field" aria-label="Playfield">
-    <div class="field__slab">
-      <div class="field__stack" id="field-stack">
-        <canvas id="board-canvas" class="layer" role="img"
-                aria-label="Tetris playfield"></canvas>
-        <canvas id="piece-canvas" class="layer" aria-hidden="true"></canvas>
-        <canvas id="fx-canvas" class="layer" aria-hidden="true"></canvas>
-      </div>
-    </div>
-  </section>
+  <footer class="colophon">
+    <span>Vanilla ES modules. No dependencies.</span>
+    <a href="games/tetris/about/">About Tetris</a>
+  </footer>
 
-  <section class="panel panel--next" aria-labelledby="next-label">
-    <h2 class="panel__label" id="next-label">Next</h2>
-    <canvas id="next-canvas" class="preview" role="img"
-            aria-label="Next pieces"></canvas>
-  </section>
-
-  <section class="panel panel--stats" aria-label="Statistics">
-    <dl class="stats">
-      <div class="stat">
-        <dt class="stat__key">Score</dt>
-        <dd class="stat__value stat__value--lead" id="stat-score">0</dd>
-      </div>
-      <div class="stat">
-        <dt class="stat__key">Level</dt>
-        <dd class="stat__value" id="stat-level">1</dd>
-      </div>
-      <div class="stat">
-        <dt class="stat__key">Lines</dt>
-        <dd class="stat__value" id="stat-lines">0</dd>
-      </div>
-    </dl>
-    <p class="badge" id="badge" hidden></p>
-    <div class="panel__actions">
-      <button class="btn btn--ghost" id="btn-pause" type="button">Pause</button>
-      <button class="btn btn--ghost" id="btn-settings" type="button">Settings</button>
-      <a class="btn btn--ghost" href="about/">About</a>
-      <a class="btn btn--ghost" href="leaderboard/">Leaderboard</a>
-    </div>
-  </section>
-
-  <!-- On-screen controls. Shown on coarse-pointer (touch) devices; hidden on
-       desktop where the keyboard is used. Every target is >= 48px. -->
-  <nav class="controls" id="controls" aria-label="Touch controls">
-    <div class="controls__cluster controls__cluster--move">
-      <button class="cbtn cbtn--move" type="button" data-hold data-action="MOVE_LEFT" aria-label="Move left">‹</button>
-      <button class="cbtn cbtn--soft" type="button" data-hold data-action="SOFT_DROP" aria-label="Soft drop">⌄</button>
-      <button class="cbtn cbtn--move" type="button" data-hold data-action="MOVE_RIGHT" aria-label="Move right">›</button>
-    </div>
-    <div class="controls__cluster controls__cluster--action">
-      <button class="cbtn cbtn--hold" type="button" data-action="HOLD" aria-label="Hold piece">Hold</button>
-      <button class="cbtn cbtn--rot" type="button" data-action="ROTATE_CCW" aria-label="Rotate counter-clockwise">⟲</button>
-      <button class="cbtn cbtn--rot" type="button" data-action="ROTATE_CW" aria-label="Rotate clockwise">⟳</button>
-      <button class="cbtn cbtn--drop" type="button" data-action="HARD_DROP" aria-label="Hard drop">Drop</button>
-    </div>
-  </nav>
-
-</main>
-
-<div class="overlay" id="overlay" hidden>
-  <div class="overlay__card" role="dialog" aria-modal="true"
-       aria-labelledby="overlay-title" id="overlay-card">
-    <h1 class="overlay__title" id="overlay-title">Tetris</h1>
-    <p class="overlay__body" id="overlay-body"></p>
-    <div class="overlay__actions" id="overlay-actions"></div>
-  </div>
 </div>
 
-<p class="sr-only" role="status" aria-live="polite" id="live-region"></p>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script type="module" src="js/main.js"></script>
+<script type="module" src="js/hub/hub.js"></script>
 </body>
 </html>
