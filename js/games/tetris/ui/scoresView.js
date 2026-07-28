@@ -38,7 +38,7 @@ export function createScoresView(overlays) {
     const loadingText = el('p', { text: 'Loading...', attrs: { style: 'color: var(--text-muted);' } });
     container.appendChild(loadingText);
 
-    fetchTopScores().then(scores => {
+    fetchTopScores('tetris').then(scores => {
       container.removeChild(loadingText);
       if (scores.length === 0) {
         container.appendChild(el('p', { text: 'No global scores yet.', attrs: { style: 'color: var(--text-muted);' } }));
@@ -105,7 +105,7 @@ export function createScoresView(overlays) {
             statusMsg.textContent = 'Submitting to global leaderboard...';
             statusMsg.style.color = 'var(--text-muted)';
             const sessionDurationSeconds = Math.floor((state.playTimeMs || 0) / 1000);
-            await submitScore(initials, state.score, sessionDurationSeconds);
+            await submitScore('tetris', initials, state.score, sessionDurationSeconds);
           } catch (e) {
             console.error('Failed to submit global score', e);
           }

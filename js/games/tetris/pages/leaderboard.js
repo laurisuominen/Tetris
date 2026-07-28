@@ -68,7 +68,7 @@ root.appendChild(globalContainerWrapper);
 const loadingMsg = el('p', { text: 'Loading global top 10...', attrs: { style: 'text-align: center; color: var(--text-muted); padding-top: 48px;' } });
 globalContainerWrapper.appendChild(loadingMsg);
 
-fetchTopScores().then(globalScores => {
+fetchTopScores('tetris').then(globalScores => {
   globalContainerWrapper.removeChild(loadingMsg);
   globalContainerWrapper.appendChild(renderTable('Global Top 10', globalScores, true));
 }).catch(err => {
