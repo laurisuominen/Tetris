@@ -1,0 +1,152 @@
+/**
+ * Snake's app shell layout.
+ *
+ * Loaded INSTEAD of css/layout.css, which encodes Tetris's hold/field/next
+ * grid and a 1:2 playfield. Everything else — components.css, backgrounds.css,
+ * animations.css — is shared unchanged, so the two games look like one product.
+ *
+ * Viewport height is declared three times, last-valid-wins:
+ *   100vh   legacy fallback
+ *   100svh  small viewport — never taller than the visible area, so the layout
+ *           cannot overflow behind mobile browser chrome
+ *   100dvh  dynamic viewport — tracks the address bar as it collapses
+ *
+ * SQUARE PLAYFIELD, WITHOUT THE CIRCULARITY
+ *
+ * Tetris derives its board width from its height via aspect-ratio on an `auto`
+ * grid column. That works for a 1:2 board, which is almost always height-bound,
+ * but a square board is width-bound as often as not — and an `auto` column
+ * asked to size a box that sizes itself from the column is circular.
+ *
+ * So the field column is given a definite size and the slab takes 100cqmin:
+ * the smaller of the field's two axes, whichever that turns out to be. No
+ * measurement feeds back into the thing being measured. `container-type: size`
+ * is what makes cqmin resolve against the field rather than the viewport.
+ */
+
+.app {
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+  padding: var(--sp-5) var(--sp-4);
+  gap: var(--sp-4);
+  display: grid;
+  align-items: center;
+  justify-content: center;
+
+  /* Wide default: board on the left, stats alongside. Both tracks are bounded
+     so neither can be inflated by its own contents. */
+  grid-template-columns: minmax(0, 1fr) var(--panel-w);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: "field stats";
+}
+
+.panel--stats { grid-area: stats; align-self: start; }
+
+.field {
+  grid-area: field;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  /* Establishes the query container that cqmin below resolves against. Size
+     containment is safe here precisely because the track is already definite. */
+  container-type: size;
+}
+
+.field__slab {
+  width: 100cqmin;
+  height: 100cqmin;
+  padding: var(--sp-2);
+  background: var(--slab-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3), var(--shadow-glow);
+  backdrop-filter: blur(2px);
+}
+
+/* Both canvases occupy the same grid cell, z-ordered by DOM order. They are
+   absolutely positioned by the renderer, which also pins their CSS box to the
+   snapped fit — so nothing in here can stretch them off their whole pixels. */
+.field__stack {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--well-bg);
+  touch-action: none;   /* scoped here so dialogs stay scrollable */
+}
+
+.field__stack > .layer {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+}
+
+/* Hidden on desktop; the touch layout below reveals it. layout.css normally
+   supplies this default, and Snake does not load layout.css. */
+.controls { display: none; }
+
+/* --- Touch layout --------------------------------------------------------- */
+
+/* Narrow OR portrait OR coarse-pointer, so a landscape tablet still gets
+   on-screen controls rather than a keyboard-only desktop layout it cannot
+   drive. Stats across the top, board in the middle, D-pad at the bottom. */
+@media (max-width: 900px), (orientation: portrait), (pointer: coarse) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "stats"
+      "field"
+      "controls";
+    padding: var(--sp-2);
+    gap: var(--sp-2);
+  }
+
+  .controls { grid-area: controls; display: flex; justify-content: center; }
+
+  .field__slab { padding: var(--sp-1); }
+}
+
+/* --- D-pad ---------------------------------------------------------------- */
+
+/* A cross, not a row. Snake's four directions are spatial, and a player
+   glancing down mid-run should find Up above Down without reading labels.
+   Loaded after components.css, so these win on source order — a media query
+   adds no specificity and neither does a second class. */
+.controls__cluster--dpad {
+  grid-template-columns: repeat(3, minmax(3.25rem, 4.5rem));
+  grid-template-areas:
+    ".    up    ."
+    "left .     right"
+    ".    down  .";
+}
+
+.cbtn--up    { grid-area: up; }
+.cbtn--left  { grid-area: left; }
+.cbtn--right { grid-area: right; }
+.cbtn--down  { grid-area: down; }
+
+.cbtn--dpad {
+  color: var(--text-primary);
+  font-size: var(--fs-lg);
+}
+
+/* --- Very short viewports (landscape phones) ------------------------------ */
+
+@media (max-height: 520px) {
+  .app { padding: var(--sp-1); gap: var(--sp-1); }
+  .panel__label { display: none; }
+
+  /* The cross costs three rows of height that a landscape phone does not have.
+     Flatten it to a single row: less spatially obvious, but it is that or lose
+     the board. */
+  .controls__cluster--dpad {
+    grid-template-columns: repeat(4, minmax(3rem, 4rem));
+    grid-template-areas: "left down up right";
+  }
+}
