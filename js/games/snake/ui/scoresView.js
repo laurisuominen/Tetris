@@ -12,7 +12,7 @@
  * of this screen.
  */
 
-import { el, setText } from '../../../shared/util/dom.js';
+import { el, setText, on } from '../../../shared/util/dom.js';
 import { isHighScore, saveScore, loadScores } from '../storage/scoresStore.js';
 import { fetchTopScores, submitScore } from '../../../shared/net/leaderboard.js';
 
@@ -116,7 +116,10 @@ export function createScoresView(overlays) {
 
     const saveBtn = el('button', { text: 'Save score', className: 'btn', attrs: { type: 'button' } });
 
-    saveBtn.onclick = async () => {
+    async function submit() {
+      // A click and an Enter can both arrive; disabled is the latch that stops
+      // the same run being filed twice.
+      if (saveBtn.disabled) return;
       saveBtn.disabled = true;
       input.disabled = true;
       const initials = input.value || 'AAA';
@@ -147,7 +150,19 @@ export function createScoresView(overlays) {
       // Whatever happened, show the boards — with the status above still read
       // out by the live region rather than replaced by a fresh card.
       setTimeout(() => showLeaderboardOnly(state), 900);
-    };
+    }
+
+    saveBtn.onclick = submit;
+
+    // A dialog with a single text field should submit on Enter. There is no
+    // <form> here so nothing gives that for free, and the window-level Enter
+    // shortcut now deliberately ignores this field — so without this, Enter
+    // would do nothing at all.
+    on(input, 'keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      submit();
+    });
 
     overlays.open('gameover_new_highscore', {
       title: state.won ? 'Perfect Game' : 'Game Over',

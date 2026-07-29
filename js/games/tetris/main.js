@@ -15,6 +15,7 @@ import { ACTIONS } from './core/game.js';
 import { STATES } from './core/fsm.js';
 import { createEngine } from './engine/engine.js';
 import { createKeyboard } from './input/keyboard.js';
+import { isTextTarget } from '../../shared/input/keyboard.js';
 import { createPalette } from './render/palette.js';
 import { createRenderer } from './render/renderer.js';
 import { createPreviews } from './render/previews.js';
@@ -185,6 +186,10 @@ engine.start();
 // Pressing Enter or Space on the start screen should just play.
 window.addEventListener('keydown', (event) => {
   if (event.code !== 'Enter' && event.code !== 'NumpadEnter') return;
+  // Load-bearing: the game-over card focuses an initials field, and GAME_OVER
+  // is one of the states this fires in. Without the guard, pressing Enter to
+  // submit a high score restarted the run and discarded the score instead.
+  if (isTextTarget(event.target)) return;
   const state = engine.getState();
   if (state.fsm === STATES.MENU || state.fsm === STATES.GAME_OVER) {
     overlays.close();
