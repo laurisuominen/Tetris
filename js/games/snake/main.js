@@ -14,6 +14,7 @@ import { ACTIONS } from './core/game.js';
 import { STATES } from './core/fsm.js';
 import { createEngine } from './engine/engine.js';
 import { createKeyboard } from './input/keyboard.js';
+import { isTextTarget } from '../../shared/input/keyboard.js';
 import { createTouch } from './input/touch.js';
 import { createPalette } from './render/palette.js';
 import { createRenderer } from './render/renderer.js';
@@ -171,8 +172,14 @@ engine.start();
 
 // Pressing Enter on the start or game-over screen should just play. Space is
 // deliberately not bound: it also activates whatever button holds focus.
+//
+// The isTextTarget guard is load-bearing, not defensive. The game-over card
+// focuses an initials field, and GAME_OVER is one of the states this shortcut
+// fires in — so without it, pressing Enter to submit a high score restarted the
+// run and threw the score away before it could be saved.
 window.addEventListener('keydown', (event) => {
   if (event.code !== 'Enter' && event.code !== 'NumpadEnter') return;
+  if (isTextTarget(event.target)) return;
   const state = engine.getState();
   if (state.fsm === STATES.MENU || state.fsm === STATES.GAME_OVER) startNewGame();
 });

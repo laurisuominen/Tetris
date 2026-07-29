@@ -12,8 +12,16 @@
 
 import { on } from '../util/dom.js';
 
-/** Whether the event came from somewhere the user is genuinely typing. */
-function isTextTarget(target) {
+/**
+ * Whether the event came from somewhere the user is genuinely typing.
+ *
+ * Exported because the keyboard module is not the only thing that listens for
+ * keys. Any raw window-level shortcut needs the same test, and a shortcut that
+ * skips it will fire while the player is typing into a field — which is how
+ * Enter came to discard a high score instead of saving it. One definition of
+ * "is typing" for the whole codebase; two would eventually disagree.
+ */
+export function isTextTarget(target) {
   if (!target) return false;
   const tag = target.tagName;
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
