@@ -275,6 +275,98 @@
   accent-color: var(--accent);
 }
 
+/* --- Game-over card and score boards ------------------------------------- */
+
+/*
+ * These exist as classes rather than inline styles because inline styles DO NOT
+ * WORK on these pages. Every page ships `style-src 'self'` with no
+ * unsafe-inline, which governs style="" attributes as well as <style> blocks,
+ * so the browser drops them with no console error — the element simply renders
+ * unstyled and it looks like a CSS bug. `el()` writes attributes through
+ * setAttribute, so `el(tag, { attrs: { style: '…' } })` is dead code.
+ *
+ * Written for Snake first and promoted here when Tetris adopted them. Two
+ * callers is a pattern; the equivalents in css/pages.css are deliberately NOT
+ * the same values, because the standalone pages are wide and the overlay card
+ * is 28rem at most.
+ */
+
+.gameover__headline {
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
+.gameover__detail { color: var(--text-muted); font-size: var(--fs-sm); }
+
+.gameover__status { font-size: var(--fs-xs); color: var(--text-muted); min-height: 1.2em; }
+.gameover__status--ok    { color: var(--success); }
+.gameover__status--error { color: var(--danger); }
+
+.initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+}
+
+.initials__label { color: var(--text-secondary); font-size: var(--fs-sm); }
+
+.initials__input {
+  width: 5rem;
+  padding: var(--sp-2);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  font: inherit;
+  font-weight: 700;
+  color: var(--text-primary);
+  background: var(--bg-base);
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--r-sm);
+}
+
+/* Side by side where there is room, stacked where there is not. Inside a 28rem
+   card that means stacked on nearly every phone. */
+.boards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  text-align: left;
+}
+
+.board { flex: 1 1 10rem; min-width: 0; }
+
+.board__title {
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-2);
+}
+
+.board__empty { color: var(--text-muted); font-size: var(--fs-sm); }
+.board__empty--error { color: var(--danger); }
+
+.scorelist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.scorelist__row {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: baseline;
+  padding: var(--sp-1) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.scorelist__rank  { color: var(--text-muted); width: 2ch; }
+.scorelist__name  { font-weight: 700; letter-spacing: 0.1em; flex: 1; }
+.scorelist__score { color: var(--accent-strong); font-weight: 600; }
+
 /* Touch layout: a small Hold and a wide, short Next strip (drawn horizontally).
    This MUST come after the desktop defaults above — a media query adds no
    specificity, so source order is what lets it win. */

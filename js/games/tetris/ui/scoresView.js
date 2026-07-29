@@ -1,143 +1,174 @@
-import { el } from '../../../shared/util/dom.js';
+/**
+ * Game-over card: initials entry, then the two leaderboards.
+ *
+ * Classed elements only, no inline style attributes. This page ships
+ * `style-src 'self'` with no unsafe-inline, which governs style="" as well as
+ * <style>, so inline styling is dropped by the browser with no console error —
+ * the card just renders unstyled. `el()` writes attributes through
+ * setAttribute, so `attrs: { style: … }` never had any effect here.
+ *
+ * The classes live in css/components.css alongside the overlay they sit in.
+ */
+
+import { el, setText } from '../../../shared/util/dom.js';
 import { isHighScore, saveScore, loadScores } from '../storage/scoresStore.js';
 import { fetchTopScores, submitScore } from '../../../shared/net/leaderboard.js';
 
+const GAME_ID = 'tetris';
+
+function board(title) {
+  const wrap = el('div', { className: 'board' });
+  wrap.appendChild(el('h2', { className: 'board__title', text: title }));
+  return wrap;
+}
+
+function scoreRow(rank, name, score) {
+  const li = el('li', { className: 'scorelist__row' });
+  li.appendChild(el('span', { className: 'scorelist__rank', text: `${rank}.` }));
+  li.appendChild(el('span', { className: 'scorelist__name', text: name }));
+  li.appendChild(el('span', {
+    className: 'scorelist__score',
+    text: Number(score).toLocaleString()
+  }));
+  return li;
+}
+
+const emptyNote = (text) => el('p', { className: 'board__empty', text });
+
 export function createScoresView(overlays) {
-  function renderLocalLeaderboard() {
+  function localBoard() {
+    const wrap = board('Local — this browser');
     const scores = loadScores();
-    const container = el('div', { attrs: { style: 'margin-top: 16px; text-align: left; font-size: var(--text-sm); flex: 1;' } });
-    
-    const title = el('h2', { text: 'Local High Scores', attrs: { style: 'font-size: var(--text-base); margin-bottom: 8px;' } });
-    container.appendChild(title);
 
     if (scores.length === 0) {
-      container.appendChild(el('p', { text: 'No high scores yet.', attrs: { style: 'color: var(--text-muted);' } }));
-      return container;
+      wrap.appendChild(emptyNote('No high scores yet.'));
+      return wrap;
     }
-    
-    const table = el('table', { attrs: { style: 'width: 100%; border-collapse: collapse;' } });
-    scores.slice(0, 10).forEach((s, i) => {
-      const tr = el('tr', { attrs: { style: 'border-bottom: 1px solid var(--border-subtle); line-height: 2;' } });
-      const tdRank = el('td', { text: `${i + 1}.`, attrs: { style: 'color: var(--text-muted); width: 15%;' } });
-      const tdInitials = el('td', { text: s.initials, attrs: { style: 'font-weight: bold; width: 25%;' } });
-      const tdScore = el('td', { text: s.score.toLocaleString(), attrs: { style: 'text-align: right; font-variant-numeric: tabular-nums;' } });
-      tr.appendChild(tdRank);
-      tr.appendChild(tdInitials);
-      tr.appendChild(tdScore);
-      table.appendChild(tr);
+
+    const list = el('ol', { className: 'scorelist' });
+    scores.slice(0, 10).forEach((entry, i) => {
+      list.appendChild(scoreRow(i + 1, entry.initials || '—', entry.score));
     });
-    container.appendChild(table);
-    return container;
+    wrap.appendChild(list);
+    return wrap;
   }
 
-  function renderGlobalLeaderboardContainer() {
-    const container = el('div', { attrs: { style: 'margin-top: 16px; text-align: left; font-size: var(--text-sm); flex: 1;' } });
-    const title = el('h2', { text: 'Global Top 10', attrs: { style: 'font-size: var(--text-base); margin-bottom: 8px;' } });
-    container.appendChild(title);
+  function globalBoard() {
+    const wrap = board('Global — top 10');
+    const loading = emptyNote('Loading…');
+    wrap.appendChild(loading);
 
-    const loadingText = el('p', { text: 'Loading...', attrs: { style: 'color: var(--text-muted);' } });
-    container.appendChild(loadingText);
-
-    fetchTopScores('tetris').then(scores => {
-      container.removeChild(loadingText);
+    fetchTopScores(GAME_ID).then((scores) => {
+      wrap.removeChild(loading);
       if (scores.length === 0) {
-        container.appendChild(el('p', { text: 'No global scores yet.', attrs: { style: 'color: var(--text-muted);' } }));
+        wrap.appendChild(emptyNote('No global scores yet.'));
         return;
       }
-
-      const table = el('table', { attrs: { style: 'width: 100%; border-collapse: collapse;' } });
-      scores.forEach((s, i) => {
-        const tr = el('tr', { attrs: { style: 'border-bottom: 1px solid var(--border-subtle); line-height: 2;' } });
-        const tdRank = el('td', { text: `${i + 1}.`, attrs: { style: 'color: var(--text-muted); width: 15%;' } });
-        const tdInitials = el('td', { text: s.player_name, attrs: { style: 'font-weight: bold; width: 25%;' } });
-        const tdScore = el('td', { text: s.score.toLocaleString(), attrs: { style: 'text-align: right; font-variant-numeric: tabular-nums;' } });
-        tr.appendChild(tdRank);
-        tr.appendChild(tdInitials);
-        tr.appendChild(tdScore);
-        table.appendChild(tr);
+      const list = el('ol', { className: 'scorelist' });
+      scores.forEach((entry, i) => {
+        list.appendChild(scoreRow(i + 1, entry.player_name, entry.score));
       });
-      container.appendChild(table);
-    }).catch(err => {
-      container.removeChild(loadingText);
-      container.appendChild(el('p', { text: 'Error loading scores.', attrs: { style: 'color: var(--piece-z);' } }));
+      wrap.appendChild(list);
+    }).catch((error) => {
+      wrap.removeChild(loading);
+      wrap.appendChild(el('p', {
+        className: 'board__empty board__empty--error',
+        text: 'Could not load global scores.'
+      }));
+      console.error('Failed to load global leaderboard', error);
     });
 
-    return container;
+    return wrap;
+  }
+
+  function boardsPair() {
+    const boards = el('div', { className: 'boards' });
+    boards.appendChild(localBoard());
+    boards.appendChild(globalBoard());
+    return boards;
   }
 
   function showGameOver(state) {
-    if (isHighScore(state.score)) {
-      // Show input for new high score
-      const container = el('div');
-      container.appendChild(el('p', { text: `New High Score: ${state.score.toLocaleString()}!`, attrs: { style: 'font-weight: bold; color: var(--piece-t); margin-bottom: 16px;' } }));
-      
-      const inputForm = el('div', { attrs: { style: 'display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 16px;' } });
-      inputForm.appendChild(el('span', { text: 'Initials:' }));
-      
-      const input = el('input', { attrs: { 
-        type: 'text', 
-        maxLength: '3', 
-        style: 'width: 72px; text-align: center; text-transform: uppercase; background: var(--bg-base); color: inherit; border: 2px solid var(--border); padding: 8px; font-weight: bold; letter-spacing: 4px; border-radius: 4px;'
-      }});
-      inputForm.appendChild(input);
-      container.appendChild(inputForm);
+    if (!isHighScore(state.score)) {
+      showLeaderboardOnly(state);
+      return;
+    }
 
-      const saveBtn = el('button', { text: 'Save Score', className: 'btn', attrs: { type: 'button' } });
-      const statusMsg = el('p', { text: '', attrs: { style: 'font-size: var(--text-xs); margin-top: 8px;' } });
-      container.appendChild(statusMsg);
-      
-      saveBtn.onclick = async () => {
-        saveBtn.disabled = true;
-        input.disabled = true;
-        const initials = input.value || 'AAA';
-        
-        // Save locally
-        saveScore({
-          score: state.score,
-          level: state.level,
-          lines: state.lines,
-          initials: initials
-        });
+    const container = el('div');
+    container.appendChild(el('p', {
+      className: 'gameover__headline',
+      text: `New High Score: ${state.score.toLocaleString()}!`
+    }));
 
-        // Submit globally if valid score > 0
-        if (state.score > 0) {
-          try {
-            statusMsg.textContent = 'Submitting to global leaderboard...';
-            statusMsg.style.color = 'var(--text-muted)';
-            const sessionDurationSeconds = Math.floor((state.playTimeMs || 0) / 1000);
-            await submitScore('tetris', initials, state.score, sessionDurationSeconds);
-          } catch (e) {
-            console.error('Failed to submit global score', e);
-          }
-        }
-        
-        showLeaderboardOnly(state);
-      };
+    const form = el('div', { className: 'initials' });
+    form.appendChild(el('label', {
+      className: 'initials__label',
+      text: 'Initials',
+      attrs: { for: 'initials-input' }
+    }));
+    const input = el('input', {
+      className: 'initials__input',
+      attrs: { type: 'text', maxLength: '3', id: 'initials-input', autocomplete: 'off' }
+    });
+    form.appendChild(input);
+    container.appendChild(form);
 
-      overlays.open('gameover_new_highscore', {
-        title: 'Game Over',
-        body: container,
-        buttons: [saveBtn]
+    const status = el('p', { className: 'gameover__status' });
+    container.appendChild(status);
+
+    const saveBtn = el('button', { text: 'Save Score', className: 'btn', attrs: { type: 'button' } });
+
+    saveBtn.onclick = async () => {
+      saveBtn.disabled = true;
+      input.disabled = true;
+      const initials = input.value || 'AAA';
+
+      // Save locally
+      saveScore({
+        score: state.score,
+        level: state.level,
+        lines: state.lines,
+        initials
       });
 
-      requestAnimationFrame(() => input.focus());
-    } else {
+      // Submit globally if valid score > 0
+      if (state.score > 0) {
+        try {
+          setText(status, 'Submitting to global leaderboard...');
+          const sessionDurationSeconds = Math.floor((state.playTimeMs || 0) / 1000);
+          await submitScore(GAME_ID, initials, state.score, sessionDurationSeconds);
+        } catch (e) {
+          console.error('Failed to submit global score', e);
+        }
+      }
+
       showLeaderboardOnly(state);
-    }
+    };
+
+    overlays.open('gameover_new_highscore', {
+      title: 'Game Over',
+      body: container,
+      buttons: [saveBtn]
+    });
+
+    requestAnimationFrame(() => input.focus());
   }
 
   function showLeaderboardOnly(state) {
     const container = el('div');
+
     if (state) {
-      container.appendChild(el('p', { text: `Score ${state.score.toLocaleString()}` }));
-      container.appendChild(el('p', { text: `Level ${state.level}   Lines ${state.lines}`, attrs: { style: 'color: var(--text-muted); margin-bottom: 16px;' } }));
+      container.appendChild(el('p', {
+        className: 'gameover__headline',
+        text: `Score ${state.score.toLocaleString()}`
+      }));
+      container.appendChild(el('p', {
+        className: 'gameover__detail',
+        text: `Level ${state.level}   Lines ${state.lines}`
+      }));
     }
-    
-    const boardsContainer = el('div', { attrs: { style: 'display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;' } });
-    boardsContainer.appendChild(renderLocalLeaderboard());
-    boardsContainer.appendChild(renderGlobalLeaderboardContainer());
-    
-    container.appendChild(boardsContainer);
+
+    container.appendChild(boardsPair());
 
     let buttons;
     if (state) {
@@ -148,9 +179,7 @@ export function createScoresView(overlays) {
       buttons = [closeBtn];
     }
 
-    // Use a wider modal to fit two leaderboards side-by-side on desktop
-    const modalKind = state ? 'gameover' : 'leaderboard';
-    overlays.open(modalKind, {
+    overlays.open(state ? 'gameover' : 'leaderboard', {
       title: state ? 'Game Over' : 'High Scores',
       body: container,
       buttons
