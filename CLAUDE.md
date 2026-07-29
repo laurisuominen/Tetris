@@ -71,7 +71,15 @@ boundary, or in a real browser window.
   paste one into client code, never commit one.
 - Migrations that have already been applied. Add a new migration instead.
 - Deployed Edge Functions — no `supabase functions deploy` without being asked.
-- `js/shared/` when adding a game (see Architecture).
+- `js/shared/` when adding a game (see Architecture). **One exception has been
+  taken, deliberately:** `js/shared/net/leaderboard.js` gained a required
+  `gameId` argument when Snake landed. It was not game-agnostic before, it was
+  game-*blind* — no game parameter at all, so it could not serve two games. That
+  is the same defect `fitPlayfield` had inside `shared/render/geometry.js`, and
+  the fix is the house pattern: take the game-specific value as an argument and
+  throw rather than default. A third game needs no further `js/shared/` edits.
+  If you find yourself wanting another exception, the bar is "shared code cannot
+  express this at all", not "this would be convenient".
 - Existing tests. Don't delete, skip, or loosen an assertion to make a suite green;
   if a test is wrong, say so and stop.
 
@@ -96,6 +104,8 @@ js/
     net/            leaderboard — the ONLY module that talks to the network
     util/           dom, emitter, rng
   games/<name>/     one directory per game, mirroring the shared layout
+                    tetris/ and snake/ both exist; use snake/ as the reference
+                    for a new game, it is the one built against these rules
 sw.js               ONE service worker, scope '/', covering the whole site
 supabase/
   functions/        Edge Functions (submit-score)
@@ -232,10 +242,20 @@ don't chase that.
 
 ## Supabase backend
 
-Current state: a single non-partitioned `leaderboard` table with **no `game_id`
-column**, and one `submit-score` Edge Function. It is Tetris-only. Everything below
-marked *planned* is design guidance for when a second game needs scores — do not
-describe it as implemented.
+Current state: a single non-partitioned `leaderboard` table **with a `game_id`
+column** (`text NOT NULL DEFAULT 'tetris'`, added by
+`migrations/20260727000000_add_game_id.sql`), indexed
+`(game_id, score DESC) INCLUDE (player_name, created_at)`. One `submit-score`
+Edge Function, which validates `game_id` against an allowlist. Two games write to
+it: `tetris` and `snake`.
+
+**Migration-before-client is a hard ordering constraint.** The client filters
+`.eq('game_id', …)`; against a database without the column that is Postgres
+`42703` and the global leaderboard fails outright. The column's `DEFAULT` is what
+makes the reverse order safe: a *deployed function that does not know about
+`game_id`* keeps inserting successfully and its rows are attributed to Tetris. So
+schema first, then function, then client — and never ship the client ahead of the
+schema.
 
 - Edge Functions answer `OPTIONS` with a 200 **before any other logic**, and attach
   the same CORS headers to success AND error paths. An error response without CORS
@@ -247,11 +267,12 @@ describe it as implemented.
   - Below 2.95.0: define them in `functions/_shared/cors.ts`.
 - Lock `Access-Control-Allow-Origin` to real origins in production. `*` is dev-only.
   The deployed function currently uses `*`.
-- *Planned* — multi-game leaderboards: one table, `PARTITION BY LIST (game_id)`.
-  - Primary key must include the partition key: `PRIMARY KEY (id, game_id)`.
-  - Index `(game_id, score DESC) INCLUDE (player_name, created_at)` for index-only scans.
-  - Converting the existing table is **not** an in-place `ALTER`: it needs a new
-    partitioned table, a data copy and a rename, as a new migration.
+- *Deferred, not next* — LIST partitioning by `game_id`. It buys nothing at this
+  row count, and it is the expensive shape: converting is **not** an in-place
+  `ALTER`, it needs a new partitioned table, a data copy and a rename, plus a
+  `PRIMARY KEY (id, game_id)` because the key must include the partition key.
+  A plain column and a composite index give the same query plan here. Revisit
+  when a single game's partition is large enough to matter, not before.
 - *Planned* — prune with `pg_cron` on a nightly schedule, never with row triggers.
   Delete on the FULL key — **deleting on `id` alone is a data-loss bug**, `id` is not
   unique across partitions. A window function cannot appear in `WHERE`, so rank in a
@@ -279,10 +300,19 @@ The client is untrusted. Obfuscation and WASM are not security. Clients never wr
 to the DB directly — only to an Edge Function holding the service role key. That
 part holds today.
 
-**The rest is not implemented.** The deployed function validates types, rejects
-`score > 1000` with a session under 10s, and caps at 5000 points/second — a ceiling
-with no derivation behind it. There is no session token, so `session_duration_seconds`
-is client-supplied and trivially forged.
+**The rest is not implemented.** There is still no session token, so
+`session_duration_seconds` is client-supplied and trivially forged; every check
+below raises the cost of cheating rather than preventing it.
+
+Ceilings are now per-game, in a `GAMES` map in the function:
+
+| Game | pts/sec | max score | Derived? |
+|---|---|---|---|
+| `snake` | 900 | 12,000 | Yes — grid size × move rate × apple value, shown in-code |
+| `tetris` | 5000 | 10,000,000 | **No.** Inherited from the single-game version. Still owed a derivation. |
+
+Do not copy Snake's numbers for a new game, and do not treat Tetris's as a
+precedent — it is the thing that needs fixing, not the pattern to follow.
 
 Planned flow:
 1. Client requests a signed session token at game start (server-stamped start time,
@@ -329,5 +359,16 @@ so the Edge Function is the real gate.
 - No `innerHTML`. `js/shared/util/dom.js` deliberately offers no markup-parsing
   helper — `setText`/`el` are the only paths to the screen, so the ergonomic option
   is also the injection-safe one.
+- **No inline `style` attributes. They do not work here.** Every page ships
+  `style-src 'self'` with no `unsafe-inline`, and that directive also governs
+  style attributes, so the browser drops them silently — no console error, just
+  an unstyled element. `el(tag, { attrs: { style: '…' } })` goes through
+  `setAttribute` and is therefore dead code. Measured 2026-07-28: an element
+  given `style="width: 123px"` computed to the inherited width, while
+  `element.style.width = '77px'` applied — CSP does not restrict CSSOM. Use
+  classes; reach for `element.style.x =` only for genuinely dynamic values, as
+  the renderers do for canvas sizing.
+  `js/games/tetris/ui/scoresView.js` and `js/games/tetris/pages/leaderboard.js`
+  still style themselves inline and are rendering unstyled in production.
 - Lazy-load sprites and audio behind the menu; ship only the start-screen critical
   path first.
