@@ -41,7 +41,14 @@ const TABLE = Object.freeze({
     [E.TO_MENU]: MENU
   }),
   [MENU]: Object.freeze({
-    [E.START]: PLAYING
+    [E.START]: PLAYING,
+    // RESTART from the menu is just "begin". It is listed because it is what
+    // the UI actually sends: every entry point into a run -- the Play button,
+    // Play again, and Enter -- funnels through one startNewGame() that
+    // dispatches RESTART, so that it need not ask which state it is in.
+    // Leaving this out made an illegal transition, which is silently a no-op
+    // by design, into a Play button that did nothing at all.
+    [E.RESTART]: PLAYING
   }),
   [PLAYING]: Object.freeze({
     [E.PAUSE]: PAUSED,

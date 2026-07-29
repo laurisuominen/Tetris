@@ -297,6 +297,48 @@ describe('snake scoring and pace', () => {
 });
 
 describe('snake lifecycle', () => {
+  /**
+   * The bug this file did not catch the first time.
+   *
+   * The game boots into MENU, and every entry point into a run -- Play, Play
+   * again, Enter -- funnels through one startNewGame() in main.js that
+   * dispatches RESTART. RESTART was not a legal transition from MENU, and an
+   * illegal transition is deliberately a silent no-op, so the Play button did
+   * nothing and the game could never start.
+   *
+   * The suite missed it because its own helper starts games with START, and
+   * the restart test below runs from PLAYING where RESTART was already legal.
+   * A test has to use the action the UI sends, from the state the game boots
+   * in, or it is testing a path nobody takes.
+   */
+  it('starts a run from the menu on the action the Play button sends', () => {
+    const state = createGame({ seed: 7 });
+    expect(state.fsm).toBe(STATES.MENU);
+
+    const events = [];
+    applyAction(state, ACTIONS.RESTART, events, 7);
+
+    expect(state.fsm).toBe(STATES.PLAYING);
+    expect(hasType(events, 'start')).toBeTruthy();
+  });
+
+  /** Same, for the other action that can begin a run. */
+  it('starts a run from the menu on START', () => {
+    const state = createGame({ seed: 7 });
+    applyAction(state, ACTIONS.START, [], 7);
+    expect(state.fsm).toBe(STATES.PLAYING);
+  });
+
+  it('actually moves the snake once started, without further prompting', () => {
+    const state = createGame({ seed: 7 });
+    applyAction(state, ACTIONS.RESTART, [], 7);
+    const x = headX(state.body);
+
+    step(state, state.moveIntervalMs, { actions: [] });
+
+    expect(headX(state.body)).toBe(x + 1);
+  });
+
   it('does not reset a game already in progress', () => {
     const state = startedGame();
     state.food = cellIndex(11, 10);
