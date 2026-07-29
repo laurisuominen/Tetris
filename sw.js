@@ -22,7 +22,7 @@
 
 // Bump this on every shipped change. Assets are cache-first, so a stale cache
 // name keeps serving old files to anyone who already has the site installed.
-const CACHE = 'arcade-v2';
+const CACHE = 'arcade-v3';
 
 // The minimum needed to boot the hub offline; everything else — including each
 // game's modules — is cached on first fetch.

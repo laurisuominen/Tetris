@@ -21,7 +21,15 @@ function requireGameId(gameId, fnName) {
   }
 }
 
-/** Top 10 for one game, highest first. Returns [] on error. */
+/**
+ * Top 10 for one game, highest first.
+ *
+ * Throws on failure rather than returning []. Swallowing the error made a
+ * broken query indistinguishable from an empty leaderboard, so the UI cheerily
+ * reported "No global scores yet" over a table with thousands of rows in it —
+ * a silent network failure dressed up as a fact. Both callers already have a
+ * .catch that renders a proper error state; this is what lets it run.
+ */
 export async function fetchTopScores(gameId) {
   requireGameId(gameId, 'fetchTopScores');
 
@@ -34,7 +42,7 @@ export async function fetchTopScores(gameId) {
 
   if (error) {
     console.error('Error fetching global leaderboard:', error);
-    return [];
+    throw error;
   }
   return data;
 }
