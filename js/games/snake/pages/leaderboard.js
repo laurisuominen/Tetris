@@ -2,16 +2,14 @@
  * Standalone high-scores page.
  *
  * Classes only, no inline style attributes: this page ships `style-src 'self'`
- * with no unsafe-inline, which governs style attributes too, so anything set
- * that way is dropped silently. The `.boards` / `.board` rules live in
- * css/pages.css.
+ * with no unsafe-inline, which governs style attributes too.
  */
 
 import { loadScores } from '../storage/scoresStore.js';
 import { fetchTopScores } from '../../../shared/net/leaderboard.js';
 import { el, qs } from '../../../shared/util/dom.js';
 
-const GAME_ID = 'tetris';
+const GAME_ID = 'snake';
 
 const root = qs('#scores-root');
 const boards = el('div', { className: 'boards' });
@@ -22,7 +20,7 @@ function renderTable(scores, isGlobal) {
 
   const headers = isGlobal
     ? [['#', 'rank'], ['Player', ''], ['Score', 'num']]
-    : [['#', 'rank'], ['Player', ''], ['Score', 'num'], ['Level', 'num'], ['Lines', 'num']];
+    : [['#', 'rank'], ['Player', ''], ['Score', 'num'], ['Apples', 'num'], ['Length', 'num']];
 
   const head = el('tr');
   for (const [label, cls] of headers) head.appendChild(el('th', { text: label, className: cls }));
@@ -44,8 +42,8 @@ function renderTable(scores, isGlobal) {
     }));
 
     if (!isGlobal) {
-      tr.appendChild(el('td', { text: String(entry.level ?? '—'), className: 'num' }));
-      tr.appendChild(el('td', { text: String(entry.lines ?? '—'), className: 'num' }));
+      tr.appendChild(el('td', { text: String(entry.apples ?? '—'), className: 'num' }));
+      tr.appendChild(el('td', { text: String(entry.length ?? '—'), className: 'num' }));
     }
     body.appendChild(tr);
   });
@@ -72,7 +70,7 @@ localWrap.appendChild(
 
 /* Global — network, so it announces its own state rather than sitting blank. */
 const globalWrap = board('Global — top 10');
-const loading = el('div', { className: 'empty', text: 'Loading global top 10…' });
+const loading = el('div', { className: 'empty', text: 'Loading global scores…' });
 globalWrap.appendChild(loading);
 
 fetchTopScores(GAME_ID).then((scores) => {
@@ -86,7 +84,7 @@ fetchTopScores(GAME_ID).then((scores) => {
   globalWrap.removeChild(loading);
   globalWrap.appendChild(el('div', {
     className: 'empty',
-    text: 'Failed to load global scores.'
+    text: 'Could not load global scores.'
   }));
-  console.error(error);
+  console.error('Failed to load global leaderboard', error);
 });

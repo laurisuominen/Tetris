@@ -38,6 +38,14 @@
   --ghost-stroke-alpha: 0.55;
   --block-radius:       0.12;  /* fraction of cell size */
 
+  /* Snake — the head is a lighter tint of the body so the leading end reads at
+     a glance without introducing a third hue. The food borrows the Z-piece red:
+     it is the one colour on the board the snake is not, which is the entire job
+     it has to do. */
+  --snake-body: #4ade80;
+  --snake-head: #86efac;
+  --food:       #f43f5e;
+
   /* Accents */
   --accent:        oklch(0.72 0.15 250);
   --accent-strong: oklch(0.80 0.17 250);

@@ -25,8 +25,8 @@ export const GAMES = Object.freeze([
     id: 'snake',
     title: 'Snake',
     path: 'games/snake/',
-    status: 'soon',
-    blurb: 'Grow, turn, and try not to meet yourself coming the other way.',
+    status: 'playable',
+    blurb: 'Grow, turn, and try not to meet yourself coming the other way. Three speeds and an optional wrap mode.',
     mark: 'SN',
     accent: 'var(--piece-s)'
   },

@@ -1,20 +1,22 @@
 /**
  * Game-over card: initials entry, then the two leaderboards.
  *
- * Classed elements only, no inline style attributes. This page ships
- * `style-src 'self'` with no unsafe-inline, which governs style="" as well as
- * <style>, so inline styling is dropped by the browser with no console error —
- * the card just renders unstyled. `el()` writes attributes through
- * setAttribute, so `attrs: { style: … }` never had any effect here.
+ * Built from classed elements only — no inline style attributes. The game page
+ * ships `style-src 'self'` with no unsafe-inline, and a style attribute is
+ * governed by that same directive, so inline styling here would simply be
+ * dropped by the browser and the card would render unstyled.
  *
- * The classes live in css/components.css alongside the overlay they sit in.
+ * The two boards are labelled "Local" and "Global" in as many words, and the
+ * network round-trip narrates itself: submitting, saved, or failed. A silent
+ * network operation that quietly loses someone's best run is the worst version
+ * of this screen.
  */
 
 import { el, setText } from '../../../shared/util/dom.js';
 import { isHighScore, saveScore, loadScores } from '../storage/scoresStore.js';
 import { fetchTopScores, submitScore } from '../../../shared/net/leaderboard.js';
 
-const GAME_ID = 'tetris';
+const GAME_ID = 'snake';
 
 function board(title) {
   const wrap = el('div', { className: 'board' });
@@ -26,14 +28,13 @@ function scoreRow(rank, name, score) {
   const li = el('li', { className: 'scorelist__row' });
   li.appendChild(el('span', { className: 'scorelist__rank', text: `${rank}.` }));
   li.appendChild(el('span', { className: 'scorelist__name', text: name }));
-  li.appendChild(el('span', {
-    className: 'scorelist__score',
-    text: Number(score).toLocaleString()
-  }));
+  li.appendChild(el('span', { className: 'scorelist__score', text: Number(score).toLocaleString() }));
   return li;
 }
 
-const emptyNote = (text) => el('p', { className: 'board__empty', text });
+function emptyNote(text) {
+  return el('p', { className: 'board__empty', text });
+}
 
 export function createScoresView(overlays) {
   function localBoard() {
@@ -41,7 +42,7 @@ export function createScoresView(overlays) {
     const scores = loadScores();
 
     if (scores.length === 0) {
-      wrap.appendChild(emptyNote('No high scores yet.'));
+      wrap.appendChild(emptyNote('No scores yet.'));
       return wrap;
     }
 
@@ -89,7 +90,7 @@ export function createScoresView(overlays) {
   }
 
   function showGameOver(state) {
-    if (!isHighScore(state.score)) {
+    if (!isHighScore(state.score) || state.score === 0) {
       showLeaderboardOnly(state);
       return;
     }
@@ -97,61 +98,62 @@ export function createScoresView(overlays) {
     const container = el('div');
     container.appendChild(el('p', {
       className: 'gameover__headline',
-      text: `New High Score: ${state.score.toLocaleString()}!`
+      text: `New high score: ${state.score.toLocaleString()}`
     }));
 
     const form = el('div', { className: 'initials' });
-    form.appendChild(el('label', {
-      className: 'initials__label',
-      text: 'Initials',
-      attrs: { for: 'initials-input' }
-    }));
+    const label = el('label', { className: 'initials__label', text: 'Initials', attrs: { for: 'initials-input' } });
     const input = el('input', {
       className: 'initials__input',
       attrs: { type: 'text', maxLength: '3', id: 'initials-input', autocomplete: 'off' }
     });
+    form.appendChild(label);
     form.appendChild(input);
     container.appendChild(form);
 
     const status = el('p', { className: 'gameover__status' });
     container.appendChild(status);
 
-    const saveBtn = el('button', { text: 'Save Score', className: 'btn', attrs: { type: 'button' } });
+    const saveBtn = el('button', { text: 'Save score', className: 'btn', attrs: { type: 'button' } });
 
     saveBtn.onclick = async () => {
       saveBtn.disabled = true;
       input.disabled = true;
       const initials = input.value || 'AAA';
 
-      // Save locally
+      // Local first and unconditionally: it cannot fail and it is the copy the
+      // player owns. The network is best-effort on top of that.
       saveScore({
         score: state.score,
-        level: state.level,
-        lines: state.lines,
+        apples: state.apples,
+        length: state.body.length,
         initials
       });
 
-      // Submit globally if valid score > 0
-      if (state.score > 0) {
-        try {
-          setText(status, 'Submitting to global leaderboard...');
-          const sessionDurationSeconds = Math.floor((state.playTimeMs || 0) / 1000);
-          await submitScore(GAME_ID, initials, state.score, sessionDurationSeconds);
-        } catch (e) {
-          console.error('Failed to submit global score', e);
-        }
+      setText(status, 'Submitting to the global leaderboard…');
+      status.className = 'gameover__status';
+
+      try {
+        const seconds = Math.floor((state.playTimeMs || 0) / 1000);
+        await submitScore(GAME_ID, initials, state.score, seconds);
+        setText(status, 'Saved locally and globally.');
+        status.className = 'gameover__status gameover__status--ok';
+      } catch (error) {
+        setText(status, 'Saved locally. The global leaderboard did not accept it.');
+        status.className = 'gameover__status gameover__status--error';
+        console.error('Failed to submit global score', error);
       }
 
-      showLeaderboardOnly(state);
+      // Whatever happened, show the boards — with the status above still read
+      // out by the live region rather than replaced by a fresh card.
+      setTimeout(() => showLeaderboardOnly(state), 900);
     };
 
     overlays.open('gameover_new_highscore', {
-      title: 'Game Over',
+      title: state.won ? 'Perfect Game' : 'Game Over',
       body: container,
       buttons: [saveBtn]
     });
-
-    requestAnimationFrame(() => input.focus());
   }
 
   function showLeaderboardOnly(state) {
@@ -164,7 +166,7 @@ export function createScoresView(overlays) {
       }));
       container.appendChild(el('p', {
         className: 'gameover__detail',
-        text: `Level ${state.level}   Lines ${state.lines}`
+        text: `Apples ${state.apples}   ·   Length ${state.body.length}`
       }));
     }
 
@@ -180,7 +182,7 @@ export function createScoresView(overlays) {
     }
 
     overlays.open(state ? 'gameover' : 'leaderboard', {
-      title: state ? 'Game Over' : 'High Scores',
+      title: state ? (state.won ? 'Perfect Game' : 'Game Over') : 'High Scores',
       body: container,
       buttons
     });

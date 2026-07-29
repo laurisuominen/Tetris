@@ -27,6 +27,11 @@
       "name": "Tetris",
       "url": "/games/tetris/",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Snake",
+      "url": "/games/snake/",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#111318">
+<meta name="description" content="About this Snake — controls, rules and how it was built.">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+<title>About — Snake</title>
+<link rel="stylesheet" href="../../../css/tokens.css">
+<link rel="stylesheet" href="../../../css/pages.css">
+</head>
+<body>
+<main class="page">
+
+  <nav class="page__nav">
+    <a class="link link--home" href="../">Back to game</a>
+    <a class="link" href="../leaderboard/">Leaderboard</a>
+    <a class="link" href="../../../">Arcade</a>
+  </nav>
+
+  <h1 class="page__title">About</h1>
+  <p class="page__lead">
+    Classic Snake built from scratch in vanilla JavaScript — no frameworks, no
+    build step, no dependencies. It installs to your home screen and plays fully
+    offline.
+  </p>
+
+  <h2>How to play</h2>
+  <p>
+    Steer the snake onto the apple. Every apple you eat makes the snake one
+    segment longer and the game slightly faster. Running into a wall or into
+    your own body ends the run. Chasing your own tail is fine — the tail moves
+    out of the way as the head arrives.
+  </p>
+
+  <h2>Keyboard controls</h2>
+  <ul class="keylist">
+    <li><span>Turn</span><b>← ↑ → ↓</b></li>
+    <li><span>Turn (alternative)</span><b>W A S D</b></li>
+    <li><span>Pause</span><b>P or Esc</b></li>
+    <li><span>Start</span><b>Enter</b></li>
+  </ul>
+  <p>
+    Turns are buffered two deep, so a corner taken faster than the snake moves
+    still registers both presses. A turn straight back into your own neck is
+    ignored rather than fatal.
+  </p>
+
+  <h2>On a phone</h2>
+  <p>
+    Use the on-screen D-pad, or turn on swipe gestures in Settings and steer by
+    dragging anywhere on the board — a single continuous drag can turn as many
+    times as you like. Vibration feedback and swipe controls can each be
+    toggled.
+  </p>
+
+  <h2>Settings</h2>
+  <p>
+    Three speeds: Turtle, Snake and Rabbit. Faster tiers pay more per apple, so
+    a slow run is not the way to the top of the leaderboard. Wrap mode removes
+    the walls entirely — leave one edge and you reappear at the other, which
+    makes far longer runs possible and far more of them end in your own tail.
+  </p>
+  <p>
+    Speed and wrap apply to the next game you start, never to the one in
+    progress.
+  </p>
+
+  <h2>Notes</h2>
+  <p>
+    The board is 20×20. Local scores are stored in this browser; the global
+    leaderboard is separate from Tetris's, so the two never mix.
+  </p>
+
+  <nav class="page__nav">
+    <a class="pagebtn" href="../">Play</a>
+  </nav>
+
+</main>
+</body>
+</html>
