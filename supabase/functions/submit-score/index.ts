@@ -40,6 +40,25 @@ const GAMES: Record<string, { maxPointsPerSecond: number; maxScore: number }> = 
   // impossible; it is a true ceiling, not an expected value. The total bound is
   // the tighter of the two checks in practice.
   snake: { maxPointsPerSecond: 900, maxScore: 12_000 },
+
+  // Derived from js/games/breakout/core/constants.js and scoring.js:
+  //
+  //   score multiplier = level, capped at SCORE_MULTIPLIER_CAP = 20
+  //   top brick row is worth 7
+  //     -> at most 7 x 20 = 140 points per brick
+  //   MAX_BALL_SPEED = 48 cells/sec and a brick is 1 cell tall
+  //     -> the ball cannot cross a brick boundary more than 48 times a second
+  //
+  //   points/sec upper bound = 48 hits/s x 140 pts        = 6,720 -> ceiling 7,000
+  //
+  //   MAX_LEVEL = 99, and a full screen is 448 points at multiplier 1
+  //   total = 448 x [ (1+...+20) + 79 x 20 ]
+  //         = 448 x [ 210 + 1,580 ] = 448 x 1,790         = 801,920 -> cap 810,000
+  //
+  // As with Snake, the points/sec bound assumes every hit lands at the maximum
+  // value with no travel between them, which is impossible. It is a true
+  // ceiling, not an expected value.
+  breakout: { maxPointsPerSecond: 7_000, maxScore: 810_000 },
 }
 
 // A session longer than a day is not a session; it is a tab left open, or a

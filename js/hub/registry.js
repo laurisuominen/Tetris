@@ -34,8 +34,8 @@ export const GAMES = Object.freeze([
     id: 'breakout',
     title: 'Breakout',
     path: 'games/breakout/',
-    status: 'soon',
-    blurb: 'One ball, one paddle, and a wall that will not clear itself.',
+    status: 'playable',
+    blurb: 'One ball, one paddle, and a wall that will not clear itself. Endless levels, and the paddle follows your mouse.',
     mark: 'BR',
     accent: 'var(--piece-l)'
   }
