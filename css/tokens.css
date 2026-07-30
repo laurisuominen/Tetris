@@ -46,6 +46,19 @@
   --snake-head: #86efac;
   --food:       #f43f5e;
 
+  /* Breakout — the 1976 wall, bottom-up yellow/green/orange/red. Reusing the
+     tetromino hues rather than inventing four more keeps the arcade looking
+     like one product, and the original's colour ORDER is what carries the
+     meaning here: the further up the wall, the more the brick is worth. The
+     ball and paddle are deliberately near-white, the only unsaturated things
+     on the field, so the eye tracks them against eight rows of colour. */
+  --brick-red:    #f43f5e;
+  --brick-orange: #fb923c;
+  --brick-green:  #4ade80;
+  --brick-yellow: #facc15;
+  --paddle:       #e2e8f0;
+  --ball:         #f8fafc;
+
   /* Accents */
   --accent:        oklch(0.72 0.15 250);
   --accent-strong: oklch(0.80 0.17 250);

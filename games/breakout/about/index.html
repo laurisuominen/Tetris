@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#111318">
+<meta name="description" content="About this Breakout — controls, rules and how it was built.">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+<title>About — Breakout</title>
+<link rel="stylesheet" href="../../../css/tokens.css">
+<link rel="stylesheet" href="../../../css/pages.css">
+</head>
+<body>
+<main class="page">
+
+  <nav class="page__nav">
+    <a class="link link--home" href="../">Back to game</a>
+    <a class="link" href="../leaderboard/">Leaderboard</a>
+    <a class="link" href="../../../">Arcade</a>
+  </nav>
+
+  <h1 class="page__title">About</h1>
+  <p class="page__lead">
+    Breakout, built from scratch in vanilla JavaScript — no frameworks, no build
+    step, no dependencies. It installs to your home screen and plays fully
+    offline.
+  </p>
+
+  <h2>How to play</h2>
+  <p>
+    Clear the wall without losing the ball. Where the ball strikes the paddle is
+    what steers it: hit it left of centre and the ball goes left, catch it on
+    the very edge and it leaves at a shallow angle. A dead-centre hit sends it
+    straight back up. You get three balls.
+  </p>
+
+  <h2>The 1976 rules, kept</h2>
+  <p>
+    Eight rows, two of each colour. Yellow bricks score 1, green 3, orange 5 and
+    the red rows at the top 7 — so a full screen is 448 points, exactly as the
+    arcade cabinet counted it.
+  </p>
+  <p>
+    The ball speeds up four times per screen: after the fourth brick, after the
+    twelfth, and the first time it reaches the orange and then the red rows. And
+    if you break through to the ceiling, your paddle halves for the rest of that
+    screen. That is the trade the original built the whole game around — the fast
+    way to clear a wall is from behind it, and it costs you half your paddle.
+  </p>
+
+  <h2>What is different</h2>
+  <p>
+    The original stopped after two screens. This one keeps going: each new wall
+    starts faster than the last, and bricks are worth their base value times the
+    level number, capped at twenty. Clearing your first screen scores the
+    classic 448 either way. The paddle comes back to full width with each new
+    screen, which the arcade version did not do.
+  </p>
+
+  <h2>Keyboard controls</h2>
+  <ul class="keylist">
+    <li><span>Move paddle</span><b>← →</b></li>
+    <li><span>Move paddle (alternative)</span><b>A D</b></li>
+    <li><span>Launch the ball</span><b>Space</b></li>
+    <li><span>Pause</span><b>P or Esc</b></li>
+    <li><span>Start</span><b>Enter</b></li>
+  </ul>
+
+  <h2>Mouse and touch</h2>
+  <p>
+    Move the mouse across the board and the paddle follows it directly — this is
+    a paddle game, and a knob is what it was built for. On a phone, drag
+    anywhere on the board; only the horizontal position is read, so you can keep
+    your finger low and out of the way of the paddle. The on-screen arrows and
+    Launch button are there as a fallback. Whichever you touched last is the one
+    in charge, so mouse and keyboard never fight each other.
+  </p>
+
+  <h2>Settings</h2>
+  <p>
+    Three speeds: Calm, Classic and Frantic. Unlike Snake, faster tiers do not
+    pay more — a brick is worth what the original said it is worth, and levels
+    are where the points come from. Speed applies to the next game you start,
+    never to the one in progress.
+  </p>
+
+  <h2>Notes</h2>
+  <p>
+    The board is a virtual 28×32 grid, so the game plays identically at any
+    screen size or pixel ratio. Collision is swept rather than positional: the
+    ball's path is tested each step rather than its position, which is why it
+    cannot slip through a brick however fast it is going. Local scores are
+    stored in this browser; the global leaderboard is separate from Tetris's and
+    Snake's, so none of the three ever mix.
+  </p>
+
+  <nav class="page__nav">
+    <a class="pagebtn" href="../">Play</a>
+  </nav>
+
+</main>
+</body>
+</html>
