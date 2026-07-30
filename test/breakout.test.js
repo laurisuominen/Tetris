@@ -189,6 +189,19 @@ describe('breakout paddle: the angle invariant', () => {
     expect(paddle.x).toBeGreaterThan(paddle.width / 2);
   });
 
+  it('stops within a fraction of a cell once the key is released', () => {
+    // Glide is v^2 / 2a. Too much of it and the paddle reads as ignoring you,
+    // which is fatal in a game about putting it in an exact spot. This was
+    // measured at 2.2 cells before PADDLE_ACCEL was retuned.
+    const paddle = createPaddle();
+    for (let i = 0; i < 60; i++) movePaddle(paddle, TICK, 1, null);   // up to speed
+    const released = paddle.x;
+
+    for (let i = 0; i < 60; i++) movePaddle(paddle, TICK, 0, null);
+    expect(paddle.vx).toBe(0);
+    expect(paddle.x - released).toBeLessThan(1);
+  });
+
   it('clamps a pointer target to the playfield', () => {
     const paddle = createPaddle();
     movePaddle(paddle, TICK, 0, -50);

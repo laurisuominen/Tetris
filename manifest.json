@@ -32,6 +32,11 @@
       "name": "Snake",
       "url": "/games/snake/",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Breakout",
+      "url": "/games/breakout/",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

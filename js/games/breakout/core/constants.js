@@ -96,9 +96,23 @@ export const PADDLE_W = 4;
 /** Halved by the classic break-through rule. */
 export const PADDLE_W_SMALL = PADDLE_W / 2;
 
-/** Keyboard paddle speed and how fast it gets there, in cells/s and cells/s². */
+/**
+ * Keyboard paddle speed and how fast it gets there, in cells/s and cells/s².
+ *
+ * The acceleration exists only to avoid an instant velocity jump; it is not
+ * meant to be felt. What it is really tuned against is the GLIDE after the key
+ * is released, which is v^2 / 2a:
+ *
+ *   at 260 cells/s^2 -> 34^2 / 520  = 2.2 cells, over half a paddle width
+ *   at 900 cells/s^2 -> 34^2 / 1800 = 0.64 cells
+ *
+ * Measured in a browser at the first value: the paddle carried on for a fifth
+ * of a second after the key came up, which in a game about putting the paddle
+ * in an exact spot reads as the controls ignoring you. Full speed is now
+ * reached in about 38ms, or between two and three frames.
+ */
 export const PADDLE_SPEED = 34;
-export const PADDLE_ACCEL = 260;
+export const PADDLE_ACCEL = 900;
 
 /* --- lives, levels, timing ------------------------------------------------- */
 

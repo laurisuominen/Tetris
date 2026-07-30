@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Browser-based casual arcade (Tetris now; Snake and Breakout planned) on GitHub
+Browser-based casual arcade (Tetris, Snake and Breakout) on GitHub
 Pages, with a Supabase backend for the global leaderboard. These are project
 standards — follow them on every task.
 
@@ -78,6 +78,12 @@ boundary, or in a real browser window.
   is the same defect `fitPlayfield` had inside `shared/render/geometry.js`, and
   the fix is the house pattern: take the game-specific value as an argument and
   throw rather than default. A third game needs no further `js/shared/` edits.
+  **That prediction has now been tested and it held: Breakout was built without
+  touching a single file under `js/shared/`,** including its paddle axis, which
+  `createKeyboard`'s existing `heldActions`/`suppressInitial`/`axis` options
+  already expressed. What did not generalise — pointer-driven paddle control,
+  held-axis buttons — went into `js/games/breakout/input/`, following the
+  precedent Snake set with its four-way swipe.
   If you find yourself wanting another exception, the bar is "shared code cannot
   express this at all", not "this would be convenient".
 - Existing tests. Don't delete, skip, or loosen an assertion to make a suite green;
@@ -104,8 +110,9 @@ js/
     net/            leaderboard — the ONLY module that talks to the network
     util/           dom, emitter, rng
   games/<name>/     one directory per game, mirroring the shared layout
-                    tetris/ and snake/ both exist; use snake/ as the reference
-                    for a new game, it is the one built against these rules
+                    tetris/, snake/ and breakout/ exist; use snake/ or
+                    breakout/ as the reference for a new game — they are the
+                    two built against these rules
 sw.js               ONE service worker, scope '/', covering the whole site
 supabase/
   functions/        Edge Functions (submit-score)
@@ -260,8 +267,8 @@ Current state: a single non-partitioned `leaderboard` table **with a `game_id`
 column** (`text NOT NULL DEFAULT 'tetris'`, added by
 `migrations/20260727000000_add_game_id.sql`), indexed
 `(game_id, score DESC) INCLUDE (player_name, created_at)`. One `submit-score`
-Edge Function, which validates `game_id` against an allowlist. Two games write to
-it: `tetris` and `snake`.
+Edge Function, which validates `game_id` against an allowlist. Three games write
+to it: `tetris`, `snake` and `breakout`.
 
 **Migration-before-client is a hard ordering constraint.** The client filters
 `.eq('game_id', …)`; against a database without the column that is Postgres
@@ -323,10 +330,16 @@ Ceilings are now per-game, in a `GAMES` map in the function:
 | Game | pts/sec | max score | Derived? |
 |---|---|---|---|
 | `snake` | 900 | 12,000 | Yes — grid size × move rate × apple value, shown in-code |
+| `breakout` | 7,000 | 810,000 | Yes — max ball speed × brick height × capped multiplier, shown in-code |
 | `tetris` | 5000 | 10,000,000 | **No.** Inherited from the single-game version. Still owed a derivation. |
 
-Do not copy Snake's numbers for a new game, and do not treat Tetris's as a
-precedent — it is the thing that needs fixing, not the pattern to follow.
+Do not copy another game's numbers, and do not treat Tetris's as a precedent —
+it is the thing that needs fixing, not the pattern to follow.
+
+Breakout's cap is only finite because two constants make it so: `MAX_LEVEL`
+(99) and `SCORE_MULTIPLIER_CAP` (20), both in
+`js/games/breakout/core/constants.js`. They exist for the derivation, not for
+game design. Raise either and the Edge Function's `maxScore` is wrong.
 
 Planned flow:
 1. Client requests a signed session token at game start (server-stamped start time,
