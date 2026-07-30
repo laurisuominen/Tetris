@@ -205,6 +205,20 @@ the root worker would fetch them regardless.
   and no deploy can dislodge it. That is exactly the trap the single-game version
   left behind, and why `activate` deletes every cache but the current one.
 - Never intercept cross-origin requests.
+- **Every response the worker stores is fetched with `cache: 'reload'`.** A plain
+  `fetch()` inside a service worker still consults the browser's HTTP cache, and
+  Pages serves assets `max-age=600` — so for ten minutes after a deploy a
+  returning visitor's new worker can launder PRE-deploy bytes into the brand-new
+  cache generation, where cache-first then pins them forever. Bumping `CACHE`
+  cannot fix that; the bump is what created the poisoned generation. Measured
+  2026-07-29 inside a live service worker: a plain `fetch` returned the
+  superseded file, the same URL with `cache: 'reload'` returned the current one.
+  Do not "simplify" `new Request(url, { cache: 'reload' })` back to `fetch(url)`
+  or `cache.add(url)`.
+  The navigation branch is the deliberate exception — a navigation Request cannot
+  be reconstructed (mode downgrades to `same-origin`, redirect to `follow`, and a
+  followed-redirect response is a TypeError for a navigation), and network-first
+  means a stale document is replaced next navigation rather than pinned.
 
 ### End-of-session telemetry
 
