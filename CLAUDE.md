@@ -294,16 +294,43 @@ schema.
   `PRIMARY KEY (id, game_id)` because the key must include the partition key.
   A plain column and a composite index give the same query plan here. Revisit
   when a single game's partition is large enough to matter, not before.
-- *Planned* — prune with `pg_cron` on a nightly schedule, never with row triggers.
-  Delete on the FULL key — **deleting on `id` alone is a data-loss bug**, `id` is not
-  unique across partitions. A window function cannot appear in `WHERE`, so rank in a
-  CTE and filter outside it:
+- **Pruning is IMPLEMENTED, and it keeps the top 100 PER GAME** — see
+  `migrations/20260730000000_prune_leaderboard_per_game.sql`. The rule lives in
+  `public.prune_leaderboard(keep)`, a plain callable function, invoked by an
+  `AFTER INSERT ... FOR EACH STATEMENT` trigger on `leaderboard`.
+
+  *This is a knowing deviation from the "pg_cron, never on the write path"
+  standard below.* The trigger predates the function being written down: it was
+  created by hand in the SQL editor, never as a migration, so the repo did not
+  contain it and `db reset` did not reproduce it. Keeping the trigger was the
+  smaller change; keeping the LOGIC in a standalone function is what makes
+  moving to cron later a schedule plus a `DROP TRIGGER` rather than a rewrite.
+  Move it when insert volume justifies the write-path cost, not before.
+
+  **The failure it replaced is the one to remember.** The original ranked
+  globally — `ORDER BY score DESC LIMIT 100` across the whole table — so the
+  leaderboard became a contest between GAMES rather than between players.
+  Whichever game had been played most filled all 100 slots. Measured
+  2026-07-30: 100 rows, `tetris` 84 / `snake` 15 / `breakout` 1, with
+  Breakout's only score at global rank 100 — the next one below it would have
+  been deleted by the trigger fired by its own insert, and the player would
+  have seen what looked exactly like a broken submission. Any per-game limit
+  must partition by `game_id`. A global limit is only ever correct for a
+  one-game arcade.
+
+- Rank in a CTE — a window function cannot appear in `WHERE`. Delete on the FULL
+  key: **deleting on `id` alone is a data-loss bug** once the table is
+  partitioned, because `id` is not unique across partitions. Break ties
+  deterministically (`created_at ASC`) or equal scores swap places at random.
 
 ```sql
 WITH ranked AS (
   SELECT id,
          game_id,
-         ROW_NUMBER() OVER (PARTITION BY game_id ORDER BY score DESC) AS rn
+         ROW_NUMBER() OVER (
+           PARTITION BY game_id
+           ORDER BY score DESC, created_at ASC
+         ) AS rn
   FROM leaderboard
 )
 DELETE FROM leaderboard l
@@ -312,6 +339,11 @@ WHERE r.rn > 100
   AND l.id = r.id
   AND l.game_id = r.game_id;
 ```
+
+Anything that touches this table by hand — a dashboard trigger, a one-off
+cleanup — **belongs in a migration**. The rule above existed only in the SQL
+editor for days: invisible to the repo, absent from `db reset`, and impossible
+to review. That is how it stayed wrong.
 
 - PgBouncer in transaction mode. Assume bursty concurrent session-end traffic.
 
