@@ -269,6 +269,22 @@ otp_expiry = 3600
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
 
+# The two templates the account pages depend on. Both send `{{ .Token }}` — the
+# 6-digit code — instead of the default `{{ .ConfirmationURL }}` link, because
+# that is what production sends and what the pages ask the player to type.
+# Without these the local stack mails a link, verifyOtp is never exercised
+# locally, and the one flow most worth testing is the one that isn't.
+#
+# Production's copies live in the dashboard, not here. Changing these files
+# changes local only.
+[auth.email.template.confirmation]
+subject = "Confirm your email address"
+content_path = "./supabase/templates/confirm.html"
+
+[auth.email.template.recovery]
+subject = "Reset your password"
+content_path = "./supabase/templates/recovery.html"
+
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
 # enabled = true
@@ -297,9 +313,29 @@ max_frequency = "5s"
 # inactivity_timeout = "8h"
 
 # This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
-# [auth.hook.before_user_created]
-# enabled = true
-# uri = "pg-functions://postgres/auth/before-user-created-hook"
+#
+# This is the ONLY unbypassable gamer-tag check — see the header comment in
+# supabase/functions/before-user-created/index.ts for why a client-side check
+# cannot be one. Registering it locally is what makes the rule testable at all;
+# without this block `supabase start` accepts any tag, including a blocked one,
+# and local stops resembling production in the one place it matters.
+#
+# The secret is `v1,whsec_<base64>` and lives in a gitignored `.env` at the repo
+# root, never in this file. Production's is set in the dashboard under
+# Authentication -> Hooks and pasted into the function's env; the two are
+# unrelated values.
+#
+# `host.docker.internal`, NOT the `http://127.0.0.1:54321` the Supabase docs
+# show. The caller here is GoTrue inside its own container, where 127.0.0.1 is
+# that container and nothing is listening on 54321 — measured 2026-08-01: every
+# signup failed with `hook_timeout_after_retry` and the function was never
+# invoked. host.docker.internal resolves to the host, whose 54321 is Kong's
+# published port. Production's uri is the ordinary https project URL; only this
+# local value is unusual.
+[auth.hook.before_user_created]
+enabled = true
+uri = "http://host.docker.internal:54321/functions/v1/before-user-created"
+secrets = "env(BEFORE_USER_CREATED_HOOK_SECRET)"
 
 # This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
 # [auth.hook.custom_access_token]
@@ -391,6 +427,14 @@ enabled = false
 authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
+
+# Supabase Auth calls the hook server-to-server, so there is no user JWT on the
+# request. With the default verify_jwt the platform rejects the call before the
+# function runs and EVERY signup fails. The StandardWebhooks signature inside
+# the function is what authenticates the caller instead, and it is stronger —
+# it covers the body, not just the connection.
+[functions.before-user-created]
+verify_jwt = false
 
 [edge_runtime]
 enabled = true
