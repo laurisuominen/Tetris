@@ -58,6 +58,28 @@ body {
   gap: var(--sp-3);
 }
 
+/* Sits above the title and aligns right, so the wordmark keeps the top-left
+   corner. Padded to a 44px touch target rather than relying on the text box. */
+.masthead__nav {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.masthead__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--sp-3);
+  color: var(--accent-strong);
+  text-decoration: none;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.masthead__link:hover {
+  text-decoration: underline;
+}
+
 .masthead__title {
   font-size: var(--fs-3xl);
   line-height: var(--lh-tight);

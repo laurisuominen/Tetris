@@ -34,10 +34,21 @@ function renderTable(scores, isGlobal) {
   scores.forEach((entry, i) => {
     const tr = el('tr');
     tr.appendChild(el('td', { text: String(i + 1), className: 'rank' }));
-    tr.appendChild(el('td', {
+    const nameCell = el('td', {
       text: isGlobal ? entry.player_name : (entry.initials || '—'),
       className: 'initials'
-    }));
+    });
+    if (isGlobal && entry.is_verified) {
+      // role="img" plus a label: a bare tick is read as punctuation or skipped,
+      // and the distinction between an owned gamer tag and typed-in initials is
+      // the entire point of showing it.
+      nameCell.appendChild(el('span', {
+        className: 'scores__badge',
+        text: '✓',
+        attrs: { role: 'img', 'aria-label': 'Verified account' }
+      }));
+    }
+    tr.appendChild(nameCell);
     tr.appendChild(el('td', {
       text: Number(entry.score).toLocaleString(),
       className: 'num scores__score'

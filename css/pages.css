@@ -141,6 +141,15 @@ body {
 .scores .initials { font-weight: 700; letter-spacing: 0.15em; }
 .scores__score { color: var(--accent-strong); font-weight: 600; }
 
+/* Verified badge: this score was submitted by a signed-in account, so the name
+   is an owned gamer tag rather than typed-in initials. --success rather than
+   the accent so it never reads as part of the score. */
+.scores__badge {
+  color: var(--success);
+  font-size: var(--fs-xs);
+  margin-left: var(--sp-1);
+}
+
 .empty {
   padding: var(--sp-6);
   text-align: center;
