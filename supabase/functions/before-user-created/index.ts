@@ -75,17 +75,44 @@ function logRejection(reason: string, detail: Record<string, unknown> = {}) {
 }
 
 /**
- * The rejection wire format, verified against Supabase's Before User Created
- * Hook documentation:
+ * The rejection wire format.
  *
- *   { "error": { "http_code": 400, "message": "..." } }   with a 4xx status
+ *   HTTP 200, body { "error": { "http_code": 400, "message": "..." } }
+ *
+ * NOTE THE HTTP 200. Supabase's Before User Created Hook documentation says to
+ * return the error object "with a 4xx status code", and that does NOT work —
+ * GoTrue discards the body and answers `500 unexpected_failure / "Invalid
+ * payload sent to hook"`, so the player is told nothing about their gamer tag.
+ * Known upstream bug, open at the time of writing:
+ * https://github.com/supabase/auth/issues/2235
+ *
+ * Measured against gotrue v2.194.0 on 2026-08-01, one signup per shape:
+ *
+ *   status 200 + { error: { http_code: N, message } }  blocked, N and message
+ *                                                      both reach the client
+ *   status 4xx + { error: { http_code, message } }     blocked, message LOST
+ *   status 200 + { error: { message } }                blocked, but reported
+ *                                                      as a 500
+ *   status 403 + anything                              "Unexpected status code
+ *                                                      returned from hook: 403"
+ *   status 200 + { decision: 'reject', message }       *** SIGNUP SUCCEEDED ***
+ *   status 200 + { error: "a string" }                 *** SIGNUP SUCCEEDED ***
+ *
+ * The last two are why this is written down rather than left as a one-line
+ * quirk: two plausible-looking shapes FAIL OPEN and create the account. If the
+ * upstream bug is fixed and this is revisited, re-run those cases before
+ * changing anything here — a rejection that silently becomes an acceptance is
+ * invisible until someone reads the leaderboard.
+ *
+ * `httpCode` travels in the body and is echoed back as the client's `code`, so
+ * it still carries its usual meaning; only the transport status is pinned.
  *
  * `message` is what the player reads, so it must be the sentence from
  * validateGamerTag and nothing else — no error codes, no "Error:" prefix, no
  * internal detail.
  */
 function reject(message: string, req: Request, httpCode = 400): Response {
-  return jsonResponse({ error: { http_code: httpCode, message } }, httpCode, req)
+  return jsonResponse({ error: { http_code: httpCode, message } }, 200, req)
 }
 
 /**
