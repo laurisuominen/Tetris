@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#111318">
+<meta name="description" content="Sign in to your arcade account, or manage the one you have.">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self' https://obkndxwkpodmcqumocfi.supabase.co; img-src 'self' data:; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Account — Arcade</title>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/pages.css">
+<link rel="stylesheet" href="../css/account.css">
+</head>
+<body>
+<main class="page">
+
+  <nav class="page__nav">
+    <a class="link link--home" href="../">Arcade</a>
+    <a class="link" href="create/">Create an account</a>
+    <a class="link" href="reset/">Reset password</a>
+  </nav>
+
+  <h1 class="page__title">Account</h1>
+  <p class="page__lead">
+    An account claims your gamer tag, so the name on the global leaderboard is
+    yours. You can play every game without one.
+  </p>
+
+  <p class="sr-only" id="account-live" role="status" aria-live="polite"></p>
+
+  <div id="account-root"></div>
+
+  <nav class="page__nav">
+    <a class="pagebtn" href="../">Back to the arcade</a>
+  </nav>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module" src="../js/account/pages/account.js"></script>
+</body>
+</html>

@@ -1,0 +1,309 @@
+/**
+ * Account pages — sign in, create an account, reset a password.
+ *
+ * Loaded AFTER tokens.css and pages.css. It exists because the standalone-page
+ * stylesheet was written for prose and tables: pages.css has no input styling,
+ * no .btn, no .sr-only and no button reset (that reset lives in base.css, which
+ * only the game shell loads). Everything a form needs is here, and every value
+ * is either a token or copied from the equivalent rule in components.css
+ * (.settings-control, .initials__input, .gameover__status--ok/--error) rather
+ * than invented.
+ *
+ * SPECIFICITY NOTE, and it is load-bearing: pages.css contains `.page p`
+ * (0-1-1) and `.page h2`. A bare `.field__error` (0-1-0) LOSES to it no matter
+ * how late this file is loaded, so every rule here that targets a <p> or an
+ * <h2> is written `.page .thing`. Dropping the `.page` prefix silently reverts
+ * error text to the ordinary secondary colour.
+ *
+ * No inline styles anywhere in these pages: they ship `style-src 'self'` with
+ * no unsafe-inline, which governs style="" attributes too, so the browser drops
+ * them with no console error and the element merely renders unstyled.
+ */
+
+/* --- Utilities pages.css does not carry ---------------------------------- */
+
+/* Each stylesheet in this project keeps its own copy; base.css and hub.css do
+   the same. The live region on every account page depends on it. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The `hidden` property is a UA rule, so any author `display` here would beat
+   it. Both step containers below set `display: flex`, hence this. */
+[hidden] { display: none !important; }
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* --- Cards --------------------------------------------------------------- */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-2);
+}
+
+.card + .card { margin-top: var(--sp-5); }
+
+.page .card__title {
+  margin-top: 0;
+  font-size: var(--fs-lg);
+}
+
+.page .card__lead { color: var(--text-secondary); }
+
+/* --- Fields -------------------------------------------------------------- */
+
+/* Capped rather than full-bleed: a 44rem-wide single-line text input is harder
+   to scan than a short one, and the cap costs nothing on a phone. */
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  max-width: 24rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.field__label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.field__input {
+  width: 100%;
+  /* 44px floor: the WCAG 2.1 AA target size, which this page can meet without
+     the 48px the on-screen game controls use. */
+  min-height: 2.75rem;
+  padding: var(--sp-2) var(--sp-3);
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--well-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-sm);
+}
+
+.field__input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.field__input[aria-invalid="true"] { border-color: var(--danger); }
+
+/* The 6-digit code: spaced and tabular so a mistyped digit is easy to spot. */
+.field__input--code {
+  max-width: 9rem;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.35em;
+}
+
+.page .field__hint {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+/* Empty until something is wrong, so it takes no space in the resting state. */
+.page .field__error {
+  font-size: var(--fs-xs);
+  color: var(--danger);
+}
+
+.page .field__error:empty { display: none; }
+
+/* --- Actions and buttons -------------------------------------------------- */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  align-items: center;
+}
+
+.btn {
+  min-height: 2.75rem;
+  padding: var(--sp-2) var(--sp-4);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  border-radius: var(--r-md);
+  background: var(--accent);
+  color: var(--bg-base);
+  text-decoration: none;
+  text-align: center;
+  touch-action: manipulation;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.btn:hover { background: var(--accent-strong); }
+.btn:active { transform: translateY(1px); }
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn--ghost:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.btn--ghost:disabled { background: transparent; }
+
+/* Outlined rather than filled: the destructive control should not be the most
+   eye-catching thing on the screen, only the most clearly labelled. */
+.btn--danger {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.btn--danger:hover {
+  background: var(--danger);
+  color: var(--bg-base);
+}
+
+.btn--danger:disabled { background: transparent; color: var(--danger); }
+
+/* --- Status line ---------------------------------------------------------- */
+
+/* Same three states as .gameover__status in components.css, and the same
+   colours. Never colour alone: the wording carries the outcome, and the same
+   string goes to the live region. */
+.page .status {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  min-height: 1.2em;
+}
+
+.page .status--ok    { color: var(--success); }
+.page .status--error { color: var(--danger); }
+
+/* --- Explanatory blocks --------------------------------------------------- */
+
+.note {
+  padding: var(--sp-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  background: var(--surface-1);
+}
+
+.note > * + * { margin-top: var(--sp-3); }
+
+.page .note__title {
+  margin-top: 0;
+  font-size: var(--fs-base);
+  color: var(--text-primary);
+}
+
+.note--warning { border-color: var(--danger); }
+
+.rules {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.rules li {
+  padding-left: var(--sp-4);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  position: relative;
+}
+
+.rules li::before {
+  content: "·";
+  position: absolute;
+  left: var(--sp-2);
+  color: var(--text-muted);
+}
+
+/* --- Signed-in summary ---------------------------------------------------- */
+
+.profile {
+  display: grid;
+  gap: var(--sp-3);
+  margin: 0;
+}
+
+.profile__key {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.profile__value {
+  margin: 0;
+  font-size: var(--fs-lg);
+  color: var(--text-primary);
+}
+
+.profile__value--tag { font-weight: 700; }
+
+/* --- Delete confirmation -------------------------------------------------- */
+
+.danger {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.page .danger__title {
+  margin-top: 0;
+  font-size: var(--fs-base);
+  color: var(--danger);
+}
+
+.danger__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--danger);
+  border-radius: var(--r-md);
+}
+
+/* --- Narrow screens ------------------------------------------------------- */
+
+/* At 375px the card padding is most of the gutter; give the content back. */
+@media (max-width: 26rem) {
+  .card { padding: var(--sp-4); }
+  .note { padding: var(--sp-3); }
+  .actions > .btn { flex: 1 1 100%; }
+}

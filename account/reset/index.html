@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#111318">
+<meta name="description" content="Reset the password for your arcade account.">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self' https://obkndxwkpodmcqumocfi.supabase.co; img-src 'self' data:; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Reset Password — Arcade</title>
+<link rel="stylesheet" href="../../css/tokens.css">
+<link rel="stylesheet" href="../../css/pages.css">
+<link rel="stylesheet" href="../../css/account.css">
+</head>
+<body>
+<main class="page">
+
+  <nav class="page__nav">
+    <a class="link link--home" href="../">Account</a>
+    <a class="link" href="../create/">Create an account</a>
+    <a class="link" href="../../">Arcade</a>
+  </nav>
+
+  <h1 class="page__title">Reset your password</h1>
+  <p class="page__lead">
+    Enter the email address on your account. If it has one, a 6-digit code will
+    arrive by email; use it here to set a new password. Your gamer tag does not
+    change.
+  </p>
+
+  <p class="sr-only" id="reset-live" role="status" aria-live="polite"></p>
+
+  <div id="reset-root"></div>
+
+  <nav class="page__nav">
+    <a class="pagebtn" href="../">Back to your account</a>
+    <a class="link" href="../../">Back to the arcade</a>
+  </nav>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module" src="../../js/account/pages/reset.js"></script>
+</body>
+</html>
