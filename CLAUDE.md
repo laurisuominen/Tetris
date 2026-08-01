@@ -35,6 +35,20 @@ Tests also run in the browser at `/test/` once a server is up. Both runners load
 the same files; keep `test/run-node.mjs` and `test/index.html` in sync when adding
 a suite.
 
+`test/e2e-accounts.mjs` is the one exception and is **not** in either runner. It
+needs Docker and a running `supabase start`, and it writes to the local
+database, so it would turn `node test/run-node.mjs` red on any machine without
+Docker up. Run it by hand after touching auth, the account pages, the Edge
+Functions or the accounts migration — it covers the things unit tests cannot
+reach (the auth hook firing inside the signup transaction, column-level grants,
+`is_verified` recomputing on account deletion, the 6-digit code arriving). Every
+run mints a fresh email and tag, so it is re-runnable.
+
+```bash
+supabase start
+node test/e2e-accounts.mjs     # 31 checks; needs the local stack up
+```
+
 Supabase (local, Docker required):
 
 ```bash
@@ -139,6 +153,9 @@ supabase/
   functions/        Edge Functions. submit-score, before-user-created (an auth
                     hook), report-name, delete-account, and _shared/
   migrations/       SQL
+  templates/        LOCAL mirrors of the two auth emails, so `supabase start`
+                    sends the 6-digit code production sends. Production's live
+                    in the dashboard; these change nothing there.
 ```
 
 `js/shared/net/client.js` exists because there must be exactly **one**
@@ -458,11 +475,50 @@ enabled, the `before-user-created` hook registered with its secret in the
 function env, and the Site URL. `supabase/config.toml` configures `supabase
 start` **only** — its `site_url` is deliberately localhost.
 
-**Unverified against the live API**, and flagged in-code where it matters: the
-`type` value `verifyOtp` wants for a password signup (Supabase's own reference
-shows both `'signup'` and `'email'`), and the empty-`identities` array that
-signals a duplicate email without saying so. Both need one real signup to
-settle. Do not quietly delete those caveats — settle them.
+The local stack mirrors both templates in `supabase/templates/`, wired up in
+`config.toml`. Without them `supabase start` mails a LINK, `verifyOtp` is never
+exercised locally, and the one flow most worth testing is the one that is not.
+Note `content_path` resolves from the REPO ROOT (`./supabase/templates/…`), not
+from `supabase/` — the commented example in `config.toml` is misleading.
+
+### Settled 2026-08-01 against the local stack (gotrue v2.194.0)
+
+Both of the caveats that used to sit here are now measured, and one of them was
+simply wrong.
+
+- **`verifyOtp` type is `'signup'`** for a password signup, and `'recovery'` for
+  a reset. Both verified with a real code out of the mail catcher.
+- **The empty-`identities` duplicate-email signal does not exist in this
+  version.** Measured, one signup per case, "Confirm email" ON:
+  an UNCONFIRMED existing address returns 200 with `identities` of length **1**;
+  a CONFIRMED one returns **422 `user_already_exists` / "User already
+  registered"**. The array was never empty in either case. `signUp()` swallows
+  the 422 specifically — matched on `error_code`, never on the bare status,
+  because 422 is also GoTrue's weak-password answer. **The anti-enumeration
+  claim is now weaker and the comments say so:** `/auth/v1/signup` still answers
+  the question for anyone with curl, so the neutral copy keeps the SITE from
+  being a point-and-click oracle and nothing more.
+
+**The `before_user_created` hook rejection format is NOT what the docs say.**
+Return **HTTP 200** with `{ error: { http_code: 4xx, message } }`. The
+documented 4xx transport status makes GoTrue discard the body and answer
+`500 / "Invalid payload sent to hook"`, so the player learns nothing about their
+gamer tag — upstream bug, open: https://github.com/supabase/auth/issues/2235
+Two plausible-looking shapes **fail open and create the account**
+(`{ decision: 'reject', message }` and `{ error: "a string" }`). The full
+measured matrix is in `before-user-created/index.ts` above `reject()`. Re-run it
+before changing that function.
+
+Locally the hook `uri` must be `http://host.docker.internal:54321/...`, not the
+`127.0.0.1` the docs show: the caller is GoTrue inside its own container, where
+127.0.0.1 is that container and nothing listens on 54321. The symptom is
+`hook_timeout_after_retry` on every signup with the function never invoked.
+
+Also confirmed here: the accounts migration applies cleanly from scratch; the
+column-level grants are a real boundary (`select('*')` → 42501 on both tables,
+`banned_at` and `user_id` unreadable, `name_reports` unreachable, direct INSERT
+refused); and deleting an account leaves its scores in place with
+`is_verified` flipped to false.
 
 ## Anti-cheat
 
