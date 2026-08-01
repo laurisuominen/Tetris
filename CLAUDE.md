@@ -1,8 +1,11 @@
 # CLAUDE.md
 
 Browser-based casual arcade (Tetris, Snake and Breakout) on GitHub
-Pages, with a Supabase backend for the global leaderboard. These are project
-standards — follow them on every task.
+Pages, with a Supabase backend for the global leaderboard and player accounts.
+These are project standards — follow them on every task.
+
+The code is proprietary — see `LICENSE.md`. The repo is public because GitHub
+Pages on the free plan requires it, not because the code is free to take.
 
 ## Working rules
 
@@ -86,20 +89,36 @@ boundary, or in a real browser window.
   precedent Snake set with its four-way swipe.
   If you find yourself wanting another exception, the bar is "shared code cannot
   express this at all", not "this would be convenient".
+  **Accounts added `js/shared/net/{client,auth}.js` and
+  `js/shared/account/session.js`, and that is not a violation of this rule** —
+  the rule is scoped to *adding a game*. Accounts are cross-cutting
+  infrastructure and `net/` is where this project already keeps the network
+  boundary. The game-agnostic test still holds: no game-specific value is
+  imported into any of them.
 - Existing tests. Don't delete, skip, or loosen an assertion to make a suite green;
   if a test is wrong, say so and stop.
+- The gamer tag blocklist tests. The Scunthorpe cases exist to constrain the
+  blocklist; if one fails, the list is wrong, not the test.
 
 No new runtime dependencies without asking first. Dev dependencies: ask if it changes
 the build. No force-push, no rewriting published history. One logical change per commit.
+
+`standardwebhooks@1.0.0` (esm.sh, used only by the `before-user-created` Edge
+Function to verify the auth-hook signature) is the one runtime dependency added
+since that rule was written, and it was approved explicitly.
 
 ## Architecture
 
 ```
 index.html          arcade hub (the game picker)
 games/<name>/       one directory per game: index.html and its sub-pages
-css/                tokens.css is the shared design system; hub.css, pages.css
+account/            sign in, create account, reset password — ordinary
+                    documents, not game pages
+css/                tokens.css is the shared design system; hub.css, pages.css,
+                    account.css (the only form styling in the project)
 js/
   hub/              registry.js (the game list) + hub.js
+  account/pages/    the three account page modules
   shared/           game-agnostic modules — do not edit to add a game
     engine/         createLoop (fixed timestep, injected), clock
     render/         dpr, geometry (grid-size agnostic)
@@ -107,7 +126,9 @@ js/
     storage/        storage, createScoresStore(key)
     ui/             overlay shell, a11y announcer, procedural backgrounds
     audio/          synth
-    net/            leaderboard — the ONLY module that talks to the network
+    account/        session.js — localStorage display cache, NO network
+    net/            client.js (the one Supabase client), leaderboard.js,
+                    auth.js — the ONLY modules that talk to the network
     util/           dom, emitter, rng
   games/<name>/     one directory per game, mirroring the shared layout
                     tetris/, snake/ and breakout/ exist; use snake/ or
@@ -115,9 +136,16 @@ js/
                     two built against these rules
 sw.js               ONE service worker, scope '/', covering the whole site
 supabase/
-  functions/        Edge Functions (submit-score)
+  functions/        Edge Functions. submit-score, before-user-created (an auth
+                    hook), report-name, delete-account, and _shared/
   migrations/       SQL
 ```
+
+`js/shared/net/client.js` exists because there must be exactly **one**
+`createClient` call in the site. Two clients means two independent auth
+storages, so a session established through one is invisible to the other and a
+signed-in player's score submits anonymously. Import the client; never call
+`createClient` again.
 
 One responsibility per module. Adding a game means: a directory under `games/`, a
 directory under `js/games/`, and one entry in `js/hub/registry.js`. It must never
@@ -270,6 +298,24 @@ column** (`text NOT NULL DEFAULT 'tetris'`, added by
 Edge Function, which validates `game_id` against an allowlist. Three games write
 to it: `tetris`, `snake` and `breakout`.
 
+`migrations/20260731000000_accounts.sql` added `profiles`, `name_reports`, and
+two columns on `leaderboard`: a nullable `user_id` and `is_verified`, a **stored
+generated column** over it. Two consequences that are not obvious:
+
+- You cannot INSERT `is_verified`. Writing to a generated column is an error.
+- `user_id` carries `ON DELETE SET NULL`, so deleting an account fires an update
+  and flips its rows to `is_verified = false`. The scores survive with the
+  gamer tag they were submitted under, because `player_name` is denormalised.
+  That is deliberate: deleting an account must not silently rewrite the board.
+
+**Grants on `leaderboard` and `profiles` are now COLUMN-LEVEL**, and this bites.
+RLS is row-level and cannot hide a column, so `profiles.banned_at` and
+`leaderboard.user_id` are withheld by revoking the table grant and re-granting a
+column list. Postgres expands `*` to every column and checks privilege on all of
+them, so **`.select('*')` is now `42501`, not a filtered result** — and so is
+filtering or ordering on a column you cannot read. Always name your columns. A
+service-role client is unaffected, which is why the Edge Functions still work.
+
 **Migration-before-client is a hard ordering constraint.** The client filters
 `.eq('game_id', …)`; against a database without the column that is Postgres
 `42703` and the global leaderboard fails outright. The column's `DEFAULT` is what
@@ -346,6 +392,77 @@ editor for days: invisible to the repo, absent from `db reset`, and impossible
 to review. That is how it stayed wrong.
 
 - PgBouncer in transaction mode. Assume bursty concurrent session-end traffic.
+
+## Accounts and identity
+
+Standard Supabase Auth: email + password, confirmed by a 6-digit code. The gamer
+tag is the public name; the email is never public.
+
+**Say the true thing about the email.** The requirement this was built against
+was "the email is not saved in the database". With standard Supabase Auth that
+is **false** — it lives in `auth.users`, same Postgres instance, different
+schema. What is true, and what the sign-up page says, is that it is unreadable
+by any client, not attached to any score, never shown on a leaderboard, never
+visible to another player, and deletable on demand. Do not let that copy drift
+back into the stronger claim. If the literal guarantee is ever wanted, it means
+HMAC-hashed emails and a hand-rolled OTP, and losing built-in password reset.
+
+**The gamer tag is validated in exactly one place that counts.**
+`supabase/functions/_shared/gamerTag.js` is plain `.js` with zero imports so
+Deno, Node and the browser all load the same file — that is why it is not `.ts`
+and why the tests can cover the code that actually runs. The enforcement point
+is the `before-user-created` auth hook, because `auth.signUp` is a public
+endpoint and any client-side check is bypassable by calling the API directly.
+The `profiles.gamer_tag_key` unique index is the backstop for the race.
+
+- **The client never sees the blocklist.** The account page checks shape only.
+- **Two tiers, and the split is the design.** `BLOCKED_CONTAINS` matches
+  anywhere and is a Scunthorpe generator, so it is four entries; everything with
+  an innocent substring use is exact-or-token. Tests assert `Scunthorpe`,
+  `assassin`, `Cockburn`, `analysis`, `Bassett`, `Japan`, `Pakistan` are
+  ACCEPTED. **If one fails, shrink the list — never the test.**
+- **The blocklist is stored uncollapsed and candidates are tested in both
+  folded forms.** Collapsing the list turns `boobs` into `bobs` and blocks the
+  ordinary name Bobs. The collapsed comparison carries a length guard, because
+  repeat-padding can only make a tag longer: `asss`(4) onto `ass`(3) counts,
+  `Bobs`(4) onto `boobs`(5) does not.
+- A blocklist is a speed bump. English only, public repo so the list is public,
+  blind to novel spellings. Report-and-ban is the actual remedy.
+
+**A signed-in player's name comes from the database, never the request body.**
+`submit-score` resolves the JWT, reads `profiles.gamer_tag`, and ignores the
+client's name field entirely. Anything that fails to resolve to a user is
+anonymous — note the publishable key rides in the same `Authorization` header
+when signed out, and it is not a JWT, so "header present" does not mean
+"signed in".
+
+Accounts are **optional**. `REQUIRE_ACCOUNT` in `submit-score` is the single
+flip that makes gamer tags mandatory; the rejection branch is already written so
+it stays one line.
+
+### Email delivery — custom SMTP is not optional
+
+Supabase's built-in mailer sends **2 messages an hour and only to addresses on
+the project team**. It cannot serve real signups; this is a hard blocker, not a
+rate limit you can live with. Production uses a custom SMTP provider (Resend's
+free tier is 3,000/month, 100/day, one verified domain).
+
+Custom SMTP is also what makes the 6-digit code possible at all: free projects
+created after 2026-06-03 cannot edit auth email templates on the default mailer,
+and the code comes from replacing `{{ .ConfirmationURL }}` with `{{ .Token }}`
+in the *Confirm signup* and *Reset password* templates.
+
+Dashboard-side settings that the repo cannot hold and that will silently break
+things if missed: the SMTP credentials, both email templates, "Confirm email"
+enabled, the `before-user-created` hook registered with its secret in the
+function env, and the Site URL. `supabase/config.toml` configures `supabase
+start` **only** — its `site_url` is deliberately localhost.
+
+**Unverified against the live API**, and flagged in-code where it matters: the
+`type` value `verifyOtp` wants for a password signup (Supabase's own reference
+shows both `'signup'` and `'email'`), and the empty-`identities` array that
+signals a duplicate email without saying so. Both need one real signup to
+settle. Do not quietly delete those caveats — settle them.
 
 ## Anti-cheat
 
