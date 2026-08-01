@@ -4,10 +4,13 @@ A complete, playable Tetris in a single `index.html` (~1000 lines, vanilla JS, n
 dependencies). Open the file directly in a browser — no server needed.
 
 This version is **kept as reference and is not published**. Active development
-happens in [`../Tetris_v2/`](../Tetris_v2/), which is what GitHub Pages serves.
+happens in [`../games/tetris/`](../games/tetris/) and [`../js/games/tetris/`](../js/games/tetris/),
+served by GitHub Pages from the repository root along with the rest of the
+arcade. (An earlier `Tetris_v2/` directory is long gone; the modular rewrite it
+held became the current layout.)
 
 `Tetris_spec.md` in this directory is the original product spec. It remains the
-source of truth for game rules in v2 as well.
+source of truth for game rules in the current version as well.
 
 ## Known defects
 
