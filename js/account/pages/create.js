@@ -301,12 +301,14 @@ async function createAccount() {
 
     if (result.possiblyExisting) {
       /*
-       * Supabase does not error on a duplicate address — it returns a success
-       * with an empty identities array, on purpose, so the signup form cannot
-       * be used to discover which addresses are registered. Saying "check your
-       * inbox" would be a lie half the time and saying "that email is taken"
-       * would reinstate exactly the oracle the empty array closes. So: word it
-       * both ways and commit to neither.
+       * The address may already have an account. Measured 2026-08-01: an
+       * UNCONFIRMED one comes back as an obfuscated success, a CONFIRMED one as
+       * a 422 that signUp() deliberately does not rethrow — see its comment.
+       *
+       * Saying "check your inbox" would be a lie half the time and saying "that
+       * email is taken" would turn this form into a point-and-click test for
+       * whether someone has an account here. So: word it both ways, commit to
+       * neither, and name the two ways out in the same sentence.
        */
       setText(codeLead,
         'If this address is new, a 6-digit code is on its way to it. If it already '

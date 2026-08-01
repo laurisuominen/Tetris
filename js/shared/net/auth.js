@@ -28,35 +28,40 @@
 import { supabase } from './client.js';
 
 /**
- * UNVERIFIED AGAINST THE LIVE API — must be confirmed by hand before release.
+ * SETTLED BY MEASUREMENT, 2026-08-01, against gotrue v2.194.0 on the local
+ * stack: a signup confirmation code verifies with type 'signup'. One real
+ * signup, code read out of the mail catcher, `POST /auth/v1/verify` with
+ * `{ type: 'signup' }` -> 200 with a session.
  *
- * Supabase's own material is genuinely inconsistent here. The `EmailOtpType`
- * union in auth-js was originally 'signup' | 'invite' | 'magiclink' |
- * 'recovery' | 'email_change'; 'email' was added later for the current API
- * behaviour, and the reference page's own verifyOtp examples use 'email' while
- * neighbouring signup material uses 'signup'. There are open issues on auth-js
- * about exactly this overlap (#437 "merge verifyOtp() email types into one",
- * #679). Reports that 'signup' is deprecated-but-accepted are not something this
- * comment can confirm.
- *
- * So: do not treat this constant as settled. Run one real signup against the
- * project, confirm which value the 6-digit code accepts, and replace this
- * comment with the measured result and the date.
+ * Supabase's own material is inconsistent about this — the `EmailOtpType` union
+ * in auth-js was originally 'signup' | 'invite' | 'magiclink' | 'recovery' |
+ * 'email_change', 'email' was added later, and the reference page's verifyOtp
+ * examples use 'email' while neighbouring signup material uses 'signup' (see
+ * auth-js #437, #679). 'email' may well work too; that was not tested, because
+ * the value here is the one that has to be right and it is.
  */
 const SIGNUP_OTP_TYPE = 'signup';
 
 /**
- * UNVERIFIED, and it also depends on project CONFIGURATION, not just code.
+ * SETTLED BY MEASUREMENT, 2026-08-01, same run: `POST /auth/v1/recover`, code
+ * out of the mail catcher, verify with type 'recovery' -> 200 and a session,
+ * then `PUT /auth/v1/user` with the new password -> 200. Signing in with the
+ * new password succeeded and the old one was refused.
  *
- * The documented password-reset flow is a link: resetPasswordForEmail sends a
- * magic link, the app listens for the PASSWORD_RECOVERY auth event, then calls
- * updateUser({ password }). The code-based flow used below — verify a 6-digit
- * token, then updateUser — only works if the "Reset Password" email template is
- * changed to emit {{ .Token }} instead of {{ .ConfirmationURL }}. If the
- * template still sends a link, confirmPasswordReset() will fail for every user
- * no matter what this constant says. Verify the template and the type together.
+ * The dependency on project CONFIGURATION is real and unchanged: this
+ * code-based flow only works because the "Reset Password" template emits
+ * {{ .Token }} instead of {{ .ConfirmationURL }}. If that template is ever
+ * reverted to a link, confirmPasswordReset() fails for every user no matter
+ * what this constant says. supabase/templates/recovery.html is the local
+ * mirror; production's copy lives in the dashboard.
  */
 const RECOVERY_OTP_TYPE = 'recovery';
+
+/**
+ * GoTrue's error_code for a signup against an address that already has a
+ * CONFIRMED account. See signUp() for why it is swallowed rather than thrown.
+ */
+const ALREADY_REGISTERED = 'user_already_exists';
 
 function requireString(value, name, fnName) {
   if (typeof value !== 'string' || value === '') {
@@ -73,22 +78,34 @@ function requireString(value, name, fnName) {
  * reads it too. Passing it any other way (a separate insert after signup) would
  * leave a window where a confirmed user has no profile.
  *
- * The returned `possiblyExisting` flag is the interesting part. When the email
- * already has an account, Supabase does NOT return an error — it returns a
- * success with an obfuscated user object whose `identities` array is EMPTY. That
- * is deliberate anti-enumeration: an attacker must not be able to use the signup
- * form to discover which addresses are registered. The cost is that the honest
- * user gets a confirmation email they will never receive (nothing was created)
- * and a screen saying "check your inbox". Surfacing the flag lets the UI word it
- * truthfully — "if this address is new, a code is on its way; if it already has
- * an account, sign in or reset your password instead" — without confirming
- * either way. Do NOT render it as "that email is taken"; that reinstates exactly
- * the enumeration oracle the empty array exists to close.
+ * The returned `possiblyExisting` flag is the interesting part, and what it has
+ * to detect is NOT what this function originally assumed.
  *
- * UNVERIFIED: the empty-identities signal is behaviour, not a documented
- * contract, and it only holds while "Confirm email" is ON for the project. With
- * confirmations off, a duplicate signup returns a plain error instead. Confirm
- * both the project setting and the observed shape by hand.
+ * MEASURED 2026-08-01 against gotrue v2.194.0, "Confirm email" ON, one signup
+ * per case:
+ *
+ *   existing account UNCONFIRMED -> 200, obfuscated user, `identities` LENGTH 1
+ *   existing account CONFIRMED   -> 422 { error_code: 'user_already_exists',
+ *                                         msg: 'User already registered' }
+ *
+ * So the widely-repeated "empty identities array means duplicate" signal is
+ * simply not what this version emits — the array was never empty in either
+ * case, and the confirmed case is a thrown error, not a success. Both branches
+ * are handled below and the empty-array test is kept only as a third case, in
+ * case a future version does emit it.
+ *
+ * THE ANTI-ENUMERATION CLAIM IS NOW WEAKER, AND SAYING SO MATTERS. The 422 is
+ * returned by the public /auth/v1/signup endpoint, so anyone with curl can
+ * still ask "does this address have an account" and get a straight answer.
+ * Collapsing it into `possiblyExisting` here stops the SITE from being a
+ * point-and-click oracle and keeps one consistent message, but it does not
+ * close the hole — only a GoTrue-side setting could, and none was found. Do not
+ * let this comment drift into claiming enumeration is prevented.
+ *
+ * The cost of the neutral wording is real: someone who genuinely already has an
+ * account is told a code may be coming, and none arrives. That is the accepted
+ * trade, and the page's copy is written to point them at sign-in and password
+ * reset in the same breath. Do NOT render this as "that email is taken".
  *
  * @returns {Promise<{user: object|null, session: object|null,
  *                    needsConfirmation: boolean, possiblyExisting: boolean}>}
@@ -105,6 +122,25 @@ export async function signUp(email, password, gamerTag) {
   });
 
   if (error) {
+    // A duplicate CONFIRMED address arrives here as an error. It is the one
+    // error this function does not rethrow, because rethrowing puts GoTrue's
+    // "User already registered" on screen — the exact sentence the neutral
+    // wording exists to avoid. Everything else (a rejected gamer tag from the
+    // auth hook, a weak password, a network failure) still throws.
+    //
+    // Matched on error_code, NOT on the 422 status. GoTrue also answers 422 for
+    // a weak password, and swallowing that would tell someone to go and check
+    // their inbox when in fact no account was created and none ever will be —
+    // a dead end with no error message anywhere to explain it.
+    if (error.code === ALREADY_REGISTERED) {
+      console.warn('Sign-up refused as a duplicate address');
+      return {
+        user: null,
+        session: null,
+        needsConfirmation: true,
+        possiblyExisting: true
+      };
+    }
     console.error('Error signing up:', error);
     throw error;
   }
