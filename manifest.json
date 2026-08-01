@@ -2,6 +2,7 @@
   "name": "Arcade",
   "short_name": "Arcade",
   "description": "A small browser arcade — vanilla JavaScript games that install, play offline and work on touch.",
+  "license": "All rights reserved. See LICENSE.md.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

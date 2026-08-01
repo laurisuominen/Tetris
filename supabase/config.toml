@@ -154,13 +154,31 @@ max_indexes = 5
 
 [auth]
 enabled = true
+# NOTE ON THE AUTH SETTINGS BELOW: this file configures the LOCAL stack only
+# (`supabase start`). The production project reads none of it — the deployed
+# values live in the Supabase dashboard and have to be changed there as well.
+# These are kept in step with production so local signup behaves the same way
+# rather than being accidentally more permissive.
+#
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://127.0.0.1:3000"
+# Deliberately the LOCAL origin. This file only ever configures `supabase start`
+# — production's Site URL is https://aihealgenius.com and is set in the
+# dashboard. Pointing this at production would make locally-generated
+# confirmation links resolve against the live site, which is exactly the wrong
+# thing to hand a developer testing signup.
+site_url = "http://localhost:8000"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+# The site is served locally by `python3 -m http.server 8000`, so both loopback
+# forms are allow-listed alongside the production origin.
+additional_redirect_urls = [
+  "https://127.0.0.1:3000",
+  "http://127.0.0.1:8000",
+  "http://localhost:8000",
+  "https://aihealgenius.com"
+]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -179,7 +197,7 @@ enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
-minimum_password_length = 6
+minimum_password_length = 8
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
 password_requirements = ""
@@ -223,7 +241,10 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+# On locally, matching production: an unconfirmed account must not be able to
+# claim a gamer tag and post scores. Local mail is never actually delivered —
+# read the confirmation link in the [local_smtp] web viewer on port 54324.
+enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
@@ -247,6 +268,22 @@ otp_expiry = 3600
 # [auth.email.template.invite]
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
+
+# The two templates the account pages depend on. Both send `{{ .Token }}` — the
+# 6-digit code — instead of the default `{{ .ConfirmationURL }}` link, because
+# that is what production sends and what the pages ask the player to type.
+# Without these the local stack mails a link, verifyOtp is never exercised
+# locally, and the one flow most worth testing is the one that isn't.
+#
+# Production's copies live in the dashboard, not here. Changing these files
+# changes local only.
+[auth.email.template.confirmation]
+subject = "Confirm your email address"
+content_path = "./supabase/templates/confirm.html"
+
+[auth.email.template.recovery]
+subject = "Reset your password"
+content_path = "./supabase/templates/recovery.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
@@ -276,9 +313,29 @@ max_frequency = "5s"
 # inactivity_timeout = "8h"
 
 # This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
-# [auth.hook.before_user_created]
-# enabled = true
-# uri = "pg-functions://postgres/auth/before-user-created-hook"
+#
+# This is the ONLY unbypassable gamer-tag check — see the header comment in
+# supabase/functions/before-user-created/index.ts for why a client-side check
+# cannot be one. Registering it locally is what makes the rule testable at all;
+# without this block `supabase start` accepts any tag, including a blocked one,
+# and local stops resembling production in the one place it matters.
+#
+# The secret is `v1,whsec_<base64>` and lives in a gitignored `.env` at the repo
+# root, never in this file. Production's is set in the dashboard under
+# Authentication -> Hooks and pasted into the function's env; the two are
+# unrelated values.
+#
+# `host.docker.internal`, NOT the `http://127.0.0.1:54321` the Supabase docs
+# show. The caller here is GoTrue inside its own container, where 127.0.0.1 is
+# that container and nothing is listening on 54321 — measured 2026-08-01: every
+# signup failed with `hook_timeout_after_retry` and the function was never
+# invoked. host.docker.internal resolves to the host, whose 54321 is Kong's
+# published port. Production's uri is the ordinary https project URL; only this
+# local value is unusual.
+[auth.hook.before_user_created]
+enabled = true
+uri = "http://host.docker.internal:54321/functions/v1/before-user-created"
+secrets = "env(BEFORE_USER_CREATED_HOOK_SECRET)"
 
 # This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
 # [auth.hook.custom_access_token]
@@ -370,6 +427,14 @@ enabled = false
 authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
+
+# Supabase Auth calls the hook server-to-server, so there is no user JWT on the
+# request. With the default verify_jwt the platform rejects the call before the
+# function runs and EVERY signup fails. The StandardWebhooks signature inside
+# the function is what authenticates the caller instead, and it is stronger —
+# it covers the body, not just the connection.
+[functions.before-user-created]
+verify_jwt = false
 
 [edge_runtime]
 enabled = true

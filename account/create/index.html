@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#111318">
+<meta name="description" content="Create an arcade account and claim your gamer tag.">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self' https://obkndxwkpodmcqumocfi.supabase.co http://127.0.0.1:54321 http://localhost:54321; img-src 'self' data:; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Create Account — Arcade</title>
+<link rel="stylesheet" href="../../css/tokens.css">
+<link rel="stylesheet" href="../../css/pages.css">
+<link rel="stylesheet" href="../../css/account.css">
+</head>
+<body>
+<main class="page">
+
+  <nav class="page__nav">
+    <a class="link link--home" href="../">Account</a>
+    <a class="link" href="../reset/">Reset password</a>
+    <a class="link" href="../../">Arcade</a>
+  </nav>
+
+  <h1 class="page__title">Create an account</h1>
+  <p class="page__lead">
+    An account claims your gamer tag, so the name on the global leaderboard is
+    yours and nobody else can play under it.
+  </p>
+
+  <p class="sr-only" id="create-live" role="status" aria-live="polite"></p>
+
+  <div id="create-root"></div>
+
+  <section class="note">
+    <h2 class="note__title">Gamer tag rules</h2>
+    <ul class="rules">
+      <li>3 to 15 characters.</li>
+      <li>Letters, numbers, hyphens and underscores only.</li>
+      <li>Must start and end with a letter or a number.</li>
+      <li>No two hyphens or underscores in a row.</li>
+      <li>Tags are unique. Case and separators do not make a new tag: <b>Lauri</b>, <b>lauri</b> and <b>L_a_u_r_i</b> are all the same name.</li>
+      <li>Your tag is public — it is the name shown on the global leaderboard.</li>
+    </ul>
+  </section>
+
+  <section class="note note--warning">
+    <h2 class="note__title">Names that get you banned</h2>
+    <p>
+      Derogatory, hateful or obscene gamer tags will be rejected. Accounts using
+      them will be banned without warning. Other players can report names, so
+      pick something you would be happy to see at the top of a public
+      leaderboard.
+    </p>
+  </section>
+
+  <section class="note">
+    <h2 class="note__title">About your email address</h2>
+    <p>
+      Your email address is used for two things only: confirming that you are a
+      real person, and letting you reset a forgotten password.
+    </p>
+    <p>
+      It lives only in the authentication system's private user table. It is not
+      readable by any client, it is not attached to any score, it is never shown
+      on a leaderboard, and it is never visible to another player. It is never
+      sold or shared.
+    </p>
+    <p>
+      One email address means one gamer tag. You can delete your account at any
+      time, and your email address is deleted with it.
+    </p>
+  </section>
+
+  <nav class="page__nav">
+    <a class="pagebtn" href="../">Already have an account? Sign in</a>
+    <a class="link" href="../../">Back to the arcade</a>
+  </nav>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module" src="../../js/account/pages/create.js"></script>
+</body>
+</html>

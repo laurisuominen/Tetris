@@ -367,6 +367,28 @@
 .scorelist__name  { font-weight: 700; letter-spacing: 0.1em; flex: 1; }
 .scorelist__score { color: var(--accent-strong); font-weight: 600; }
 
+/* Verified badge: a score submitted by a signed-in account, whose name is the
+   owned gamer tag rather than typed-in initials. --success rather than the
+   accent so it never reads as part of the score. */
+.scorelist__badge {
+  color: var(--success);
+  font-size: var(--fs-xs);
+  margin-left: calc(var(--sp-1) * -1);
+  margin-right: var(--sp-1);
+}
+
+/* "Submitting as LAURI" — replaces the initials field once signed in. */
+.gameover__as {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  text-align: center;
+}
+.gameover__tag {
+  color: var(--text-primary);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
 /* Touch layout: a small Hold and a wide, short Next strip (drawn horizontally).
    This MUST come after the desktop defaults above — a media query adds no
    specificity, so source order is what lets it win. */

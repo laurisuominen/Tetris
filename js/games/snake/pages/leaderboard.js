@@ -8,8 +8,17 @@
 import { loadScores } from '../storage/scoresStore.js';
 import { fetchTopScores } from '../../../shared/net/leaderboard.js';
 import { el, qs } from '../../../shared/util/dom.js';
+import { getSession } from '../../../shared/net/auth.js';
+import { createReportControl } from '../../../shared/account/reportControl.js';
 
 const GAME_ID = 'snake';
+
+// Whether a report control is offered. Resolved before the global table is
+// built, so the table never has to be re-rendered when the session lands.
+// Reporting requires a session; the Edge Function rejects an unauthenticated
+// caller before it looks anything up, so offering the control signed-out would
+// only produce a guaranteed failure.
+let signedIn = false;
 
 const root = qs('#scores-root');
 const boards = el('div', { className: 'boards' });
@@ -32,10 +41,28 @@ function renderTable(scores, isGlobal) {
   scores.forEach((entry, i) => {
     const tr = el('tr');
     tr.appendChild(el('td', { text: String(i + 1), className: 'rank' }));
-    tr.appendChild(el('td', {
+    const nameCell = el('td', {
       text: isGlobal ? entry.player_name : (entry.initials || '—'),
       className: 'initials'
-    }));
+    });
+    if (isGlobal && entry.is_verified) {
+      // role="img" plus a label: a bare tick is read as punctuation or skipped,
+      // and the distinction between an owned gamer tag and typed-in initials is
+      // the entire point of showing it.
+      nameCell.appendChild(el('span', {
+        className: 'scores__badge',
+        text: '✓',
+        attrs: { role: 'img', 'aria-label': 'Verified account' }
+      }));
+    }
+    // Reporting requires a session, and only an owned gamer tag can be
+    // reported — typed-in initials belong to nobody, so there is no account to
+    // action. The control is added asynchronously because the session check is
+    // async and the table renders synchronously.
+    if (isGlobal && entry.is_verified && signedIn) {
+      nameCell.appendChild(createReportControl(entry.player_name));
+    }
+    tr.appendChild(nameCell);
     tr.appendChild(el('td', {
       text: Number(entry.score).toLocaleString(),
       className: 'num scores__score'
@@ -73,7 +100,13 @@ const globalWrap = board('Global — top 10');
 const loading = el('div', { className: 'empty', text: 'Loading global scores…' });
 globalWrap.appendChild(loading);
 
-fetchTopScores(GAME_ID).then((scores) => {
+Promise.all([
+  fetchTopScores(GAME_ID),
+  // A failed session lookup is not a failed page — fall back to "signed out",
+  // which loses the report control and nothing else.
+  getSession().catch(() => null)
+]).then(([scores, session]) => {
+  signedIn = Boolean(session);
   globalWrap.removeChild(loading);
   globalWrap.appendChild(
     scores.length

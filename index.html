@@ -30,6 +30,14 @@
 <div class="shell">
 
   <header class="masthead">
+    <!-- Deliberately a plain link with no session state. Rendering "Signed in
+         as X" here would mean loading the Supabase SDK, which would mean
+         relaxing this page's CSP (it is tighter than the games': no jsDelivr,
+         no connect-src) and giving up the hub's offline-first boot. The
+         account page shows the state instead. -->
+    <nav class="masthead__nav" aria-label="Account">
+      <a class="masthead__link" href="account/">Account</a>
+    </nav>
     <h1 class="masthead__title">Arcade</h1>
     <p class="masthead__lead">
       Small games built in vanilla JavaScript — no framework, no build step.
@@ -45,6 +53,10 @@
   <footer class="colophon">
     <span>Vanilla ES modules. No dependencies.</span>
     <a href="games/tetris/about/">About Tetris</a>
+    <!-- Points at the GitHub-rendered copy rather than /LICENSE.md: Pages
+         serves .md as text/markdown, which a browser may download instead of
+         displaying. One source of truth, and it always renders. -->
+    <a href="https://github.com/laurisuominen/Tetris/blob/main/LICENSE.md">Licence</a>
   </footer>
 
 </div>

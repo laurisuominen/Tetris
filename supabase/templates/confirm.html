@@ -1,0 +1,21 @@
+<!--
+  Local mirror of the production "Confirm signup" template.
+
+  The point of this file is `{{ .Token }}` rather than `{{ .ConfirmationURL }}`.
+  Production's dashboard template was changed to the 6-digit code so the account
+  pages can ask for one; leaving the local stack on the default link template
+  means local never exercises verifyOtp the way production does, and the code
+  path that actually ships goes untested.
+
+  This is a COPY for local development. Editing it does not change production —
+  that template lives in the Supabase dashboard under Authentication -> Emails,
+  and free projects created after 2026-06-03 can only edit it with custom SMTP
+  configured. Keep the two in step by hand.
+-->
+<h2>Confirm your email address</h2>
+
+<p>Enter this code on the arcade to finish creating your account:</p>
+
+<p style="font-size: 28px; letter-spacing: 6px; font-weight: bold">{{ .Token }}</p>
+
+<p>The code expires in one hour. If you did not sign up, ignore this email.</p>

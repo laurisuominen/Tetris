@@ -14,7 +14,35 @@ import { el, setText, on } from '../../../shared/util/dom.js';
 import { isHighScore, saveScore, loadScores } from '../storage/scoresStore.js';
 import { fetchTopScores, submitScore } from '../../../shared/net/leaderboard.js';
 
+import { getSession } from '../../../shared/net/auth.js';
+import { getCachedProfile, clearCachedProfile } from '../../../shared/account/session.js';
+
 const GAME_ID = 'tetris';
+
+/**
+ * The signed-in gamer tag, or null.
+ *
+ * Read from the localStorage cache first because the game-over card is built
+ * synchronously and cannot await a round-trip. The session is then confirmed in
+ * the background and the cache cleared if it has gone stale.
+ *
+ * A stale tag here is cosmetic only: it changes the LABEL on the card and
+ * nothing else, because submit-score re-derives identity from the JWT and reads
+ * the name out of `profiles`.
+ */
+let signedInTag = getCachedProfile()?.gamerTag ?? null;
+
+getSession()
+  .then((session) => {
+    if (!session) {
+      signedInTag = null;
+      clearCachedProfile();
+    }
+  })
+  .catch((error) => {
+    // Leave the cached value alone. The server is the authority on identity.
+    console.error('Could not confirm session', error);
+  });
 
 function board(title) {
   const wrap = el('div', { className: 'board' });
@@ -22,10 +50,19 @@ function board(title) {
   return wrap;
 }
 
-function scoreRow(rank, name, score) {
+function scoreRow(rank, name, score, verified = false) {
   const li = el('li', { className: 'scorelist__row' });
   li.appendChild(el('span', { className: 'scorelist__rank', text: `${rank}.` }));
   li.appendChild(el('span', { className: 'scorelist__name', text: name }));
+  if (verified) {
+    // role="img" plus a label: without it a screen reader reads the tick as
+    // punctuation or skips it, and the distinction it draws is the point.
+    li.appendChild(el('span', {
+      className: 'scorelist__badge',
+      text: '✓',
+      attrs: { role: 'img', 'aria-label': 'Verified account' }
+    }));
+  }
   li.appendChild(el('span', {
     className: 'scorelist__score',
     text: Number(score).toLocaleString()
@@ -66,7 +103,7 @@ export function createScoresView(overlays) {
       }
       const list = el('ol', { className: 'scorelist' });
       scores.forEach((entry, i) => {
-        list.appendChild(scoreRow(i + 1, entry.player_name, entry.score));
+        list.appendChild(scoreRow(i + 1, entry.player_name, entry.score, entry.is_verified));
       });
       wrap.appendChild(list);
     }).catch((error) => {
@@ -100,18 +137,31 @@ export function createScoresView(overlays) {
       text: `New High Score: ${state.score.toLocaleString()}!`
     }));
 
-    const form = el('div', { className: 'initials' });
-    form.appendChild(el('label', {
-      className: 'initials__label',
-      text: 'Initials',
-      attrs: { for: 'initials-input' }
-    }));
-    const input = el('input', {
-      className: 'initials__input',
-      attrs: { type: 'text', maxLength: '3', id: 'initials-input', autocomplete: 'off' }
-    });
-    form.appendChild(input);
-    container.appendChild(form);
+    // Signed in: the name is settled and the field would be a lie — the server
+    // reads the tag out of `profiles` and ignores whatever the client sends.
+    // Signed out: the legacy three-letter initials, unchanged.
+    const input = signedInTag
+      ? null
+      : el('input', {
+          className: 'initials__input',
+          attrs: { type: 'text', maxLength: '3', id: 'initials-input', autocomplete: 'off' }
+        });
+
+    if (signedInTag) {
+      const asWho = el('p', { className: 'gameover__as' });
+      asWho.appendChild(el('span', { text: 'Submitting as ' }));
+      asWho.appendChild(el('b', { className: 'gameover__tag', text: signedInTag }));
+      container.appendChild(asWho);
+    } else {
+      const form = el('div', { className: 'initials' });
+      form.appendChild(el('label', {
+        className: 'initials__label',
+        text: 'Initials',
+        attrs: { for: 'initials-input' }
+      }));
+      form.appendChild(input);
+      container.appendChild(form);
+    }
 
     const status = el('p', { className: 'gameover__status' });
     container.appendChild(status);
@@ -123,8 +173,14 @@ export function createScoresView(overlays) {
       // the same run being filed twice.
       if (saveBtn.disabled) return;
       saveBtn.disabled = true;
-      input.disabled = true;
-      const initials = input.value || 'AAA';
+      if (input) input.disabled = true;
+
+      // The name sent to the server. When signed in the server overrides it
+      // from the database anyway, so this only decides what the LOCAL board
+      // stores — and createScoresStore clamps that to [A-Z0-9]{3}, so a gamer
+      // tag shows up locally as its first three characters. The local board is
+      // a per-browser record, not an identity.
+      const initials = signedInTag || input.value || 'AAA';
 
       // Save locally
       saveScore({
@@ -154,11 +210,15 @@ export function createScoresView(overlays) {
     // <form> here so nothing gives that for free, and the window-level Enter
     // shortcut now deliberately ignores this field — so without this, Enter
     // would do nothing at all.
-    on(input, 'keydown', (event) => {
-      if (event.key !== 'Enter') return;
-      event.preventDefault();
-      submit();
-    });
+    // Only bound when the field exists; a signed-in player has no field and
+    // Enter reaches the button through normal focus.
+    if (input) {
+      on(input, 'keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        submit();
+      });
+    }
 
     overlays.open('gameover_new_highscore', {
       title: 'Game Over',
