@@ -58,8 +58,41 @@ cannot edit auth email templates on the default mailer.
 
 ## 3. Both email templates must send the CODE, not a link
 
+**STILL OUTSTANDING as of 2026-08-03 — this is what is currently breaking
+sign-up.** Measured by signing up a throwaway address and reading the delivered
+message: the *Confirm signup* body arrives as
+
+```html
+<h2>Confirm your email address</h2>
+<p>Follow the link below to confirm this email address and finish signing up.</p>
+<p><a href="{{ .ConfirmationURL }}">Confirm email address</a></p>
+```
+
+The subject line has been customised but the body still sends a LINK. The
+account page asks for a 6-digit code, so there is nothing for the player to
+type and the account can never be confirmed from the site. Delivery itself is
+fine — the mail arrived from `arcade@aihealgenius.com` within seconds.
+
 **Authentication → Emails → Templates.** In *Confirm signup* and *Reset
-password*, replace `{{ .ConfirmationURL }}` with `{{ .Token }}`.
+password*, replace `{{ .ConfirmationURL }}` with `{{ .Token }}`. Working bodies:
+
+```html
+<h2>Confirm your email address</h2>
+<p>Enter this code on the arcade to finish creating your account:</p>
+<p style="font-size:28px; letter-spacing:6px; font-weight:bold">{{ .Token }}</p>
+<p>The code expires in one hour. If you did not sign up, ignore this email.</p>
+```
+
+```html
+<h2>Reset your password</h2>
+<p>Enter this code on the arcade to choose a new password:</p>
+<p style="font-size:28px; letter-spacing:6px; font-weight:bold">{{ .Token }}</p>
+<p>The code expires in one hour. If you did not ask for this, ignore this email.</p>
+```
+
+The *Reset password* template was not directly observed — GoTrue will not send a
+recovery mail to an unconfirmed account, and no confirmed account exists yet.
+Assume it is also still the default link and change it too.
 
 The account pages ask the player to type a 6-digit code. If either template
 still sends a link, that flow is broken for every user regardless of what the
@@ -91,9 +124,15 @@ Applied 2026-08-01, verified against the live project:
   deployed. Anonymous score submission re-tested and working; the prune trigger
   fired correctly on the test row.
 
-## Still open, and not a dashboard setting
+## Verified working, 2026-08-03
 
-`ALLOW_ANY_ORIGIN` in `supabase/functions/_shared/cors.ts` is still `true`, so
-the deployed functions answer `Access-Control-Allow-Origin: *`. CLAUDE.md wants
-real origins in production. It is a one-line flip plus a redeploy; the allow-list
-is already written.
+- **The auth hook is registered and enforcing.** `FuckFace` → "not allowed",
+  `admin` → "reserved", a 2-character tag → the length message. All three are
+  refused before any user row or email exists, which also proves the secret
+  matches and Verify JWT is off.
+- **Resend delivers.** A signup to a disposable address arrived within seconds
+  from `arcade@aihealgenius.com`.
+- **CORS is locked to real origins.** `ALLOW_ANY_ORIGIN` is now `false` and all
+  four functions are redeployed. `submit-score` had its own hand-rolled `'*'`
+  and now imports the shared helper, so there is one copy of the rule rather
+  than two.

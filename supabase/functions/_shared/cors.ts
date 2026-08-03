@@ -27,13 +27,19 @@
  */
 
 /**
- * THE SWITCH. `true` = permissive `*` (current deployed behaviour, dev-safe).
- * `false` = reflect only an origin in ALLOWED_ORIGINS.
+ * THE SWITCH. `true` = permissive `*`. `false` = reflect only an origin in
+ * ALLOWED_ORIGINS.
  *
- * Setting this to `false` is the whole production hardening step. Nothing else
- * needs to change.
+ * Flipped to `false` on 2026-08-03, once real player sessions existed. Verified
+ * before flipping that ALLOWED_ORIGINS is complete: `www.aihealgenius.com` and
+ * `laurisuominen.github.io/Tetris/` both answer 301 to the apex, so a browser's
+ * final origin is always `https://aihealgenius.com` and no third origin reaches
+ * these functions.
+ *
+ * Set it back to `true` only for a deliberate debugging session, and put it
+ * back afterwards.
  */
-const ALLOW_ANY_ORIGIN = true
+const ALLOW_ANY_ORIGIN = false
 
 /**
  * Real origins, in preference order. Index 0 is the production domain and is

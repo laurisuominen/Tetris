@@ -1,10 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeadersFor } from "../_shared/cors.ts"
+
+/*
+ * CORS comes from _shared/cors.ts rather than the object that used to sit here.
+ *
+ * This function hand-rolled its own `Access-Control-Allow-Origin: '*'` because
+ * it predates that module. The duplicate was harmless while both said `*`, and
+ * became a real gap the moment the shared module was locked to real origins:
+ * flipping the switch there hardened the three account functions and silently
+ * left the busiest one — this one — open to every origin on the internet. A
+ * second copy of a security control is a second place to forget.
+ *
+ * Headers are now built per-request, because the allow-list mode reflects the
+ * caller's Origin and therefore cannot be computed once at module load.
+ */
 
 /**
  * THE ONE FLIP THAT MAKES GAMER TAGS MANDATORY.
@@ -151,7 +162,7 @@ function reject(reason: string, payload: unknown, extra: Record<string, unknown>
 serve(async (req) => {
   // CORS preflight answered before any other logic, per project standards.
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeadersFor(req) })
   }
 
   let payload: unknown = null
@@ -410,7 +421,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify(data),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      { headers: { ...corsHeadersFor(req), "Content-Type": "application/json" }, status: 200 }
     )
   } catch (error) {
     // CORS headers on the error path too. Without them the browser sees an
@@ -418,7 +429,7 @@ serve(async (req) => {
     const message = error instanceof Error ? error.message : String(error)
     return new Response(
       JSON.stringify({ error: message }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      { headers: { ...corsHeadersFor(req), "Content-Type": "application/json" }, status: 400 }
     )
   }
 })
