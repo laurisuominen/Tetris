@@ -16,6 +16,7 @@ import './snake.test.js';
 import './breakout.test.js';
 import './gamerTag.test.js';
 import './scoresStore.test.js';
+import './topScores.test.js';
 
 const GREEN = '[32m';
 const RED = '[31m';

@@ -118,6 +118,14 @@ body {
   margin-bottom: var(--sp-3);
 }
 
+/* Explains the per-player cap under the global table. Quiet by design — it is a
+   footnote, not a status message. */
+.board__note {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  margin-top: var(--sp-2);
+}
+
 .scores {
   width: 100%;
   border-collapse: collapse;

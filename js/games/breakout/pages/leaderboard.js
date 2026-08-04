@@ -117,6 +117,14 @@ Promise.all([
       ? renderTable(scores, true)
       : el('div', { className: 'empty', text: 'No global scores yet.' })
   );
+  // Say the rule out loud. A player whose fourth-best run does not appear would
+  // otherwise read a working cap as a failed submission.
+  if (scores.length) {
+    globalWrap.appendChild(el('p', {
+      className: 'board__note',
+      text: 'Each player’s best 3 scores, so one player cannot hold the board.'
+    }));
+  }
 }).catch((error) => {
   globalWrap.removeChild(loading);
   globalWrap.appendChild(el('div', {

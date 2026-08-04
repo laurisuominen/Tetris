@@ -17,6 +17,7 @@
  * header, i.e. anonymously, with nothing on screen to say so. See client.js.
  */
 import { supabase } from './client.js';
+import { capPerPlayer, MAX_PER_PLAYER, BOARD_SIZE, FETCH_LIMIT } from './topScores.js';
 
 function requireGameId(gameId, fnName) {
   if (typeof gameId !== 'string' || gameId === '') {
@@ -25,7 +26,13 @@ function requireGameId(gameId, fnName) {
 }
 
 /**
- * Top 10 for one game, highest first.
+ * Top 10 for one game, highest first, with each name capped at three rows.
+ *
+ * The cap is why this asks for a hundred rows to return ten: the filtering is
+ * done here, in capPerPlayer, so the query has to see every row that could
+ * qualify. FETCH_LIMIT is the prune retention, i.e. the whole table for this
+ * game, which makes the result exact. See topScores.js for why the rule lives
+ * on the read path instead of in the prune function.
  *
  * Throws on failure rather than returning []. Swallowing the error made a
  * broken query indistinguishable from an empty leaderboard, so the UI cheerily
@@ -52,13 +59,18 @@ export async function fetchTopScores(gameId) {
     .select('player_name, score, session_duration_seconds, created_at, is_verified')
     .eq('game_id', gameId)
     .order('score', { ascending: false })
-    .limit(10);
+    // Deterministic tie-break, earliest first — the same one
+    // prune_leaderboard uses. Without it the planner decides which of two equal
+    // scores comes first, and the per-player cap turns that into a row
+    // appearing and disappearing between reloads rather than a harmless swap.
+    .order('created_at', { ascending: true })
+    .limit(FETCH_LIMIT);
 
   if (error) {
     console.error('Error fetching global leaderboard:', error);
     throw error;
   }
-  return data;
+  return capPerPlayer(data, MAX_PER_PLAYER, BOARD_SIZE);
 }
 
 /**

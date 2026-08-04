@@ -381,6 +381,25 @@ schema.
   must partition by `game_id`. A global limit is only ever correct for a
   one-game arcade.
 
+- **The global board shows at most 3 rows per name, and that cap is a READ-side
+  rule, not a prune rule** — `capPerPlayer` in `js/shared/net/topScores.js`,
+  applied by `fetchTopScores`. Without it one player's ten good runs fill the
+  whole top 10 and the board records who played most rather than who played
+  best. Three details are load-bearing:
+  - `fetchTopScores` asks for **100** rows to return 10. That is the prune
+    retention, i.e. every row the game has, which is what makes the filtered
+    board exact rather than a best-effort slice of a window. Raise retention
+    and `FETCH_LIMIT` must move with it.
+  - The query now orders `score DESC, created_at ASC` — the same tie-break the
+    prune function uses. Under a quota an undefined tie order stops being a
+    harmless swap and becomes a row flickering on and off the board.
+  - **Do not move this into `prune_leaderboard`.** Pruning deletes, and the only
+    grouping key a client can see is a display name: `user_id` is deliberately
+    ungranted, and `AAA` is both a common choice and what `toInitials()` pads to
+    when nothing is typed, so it is shared by unrelated people. Capping a name on
+    the write path would permanently destroy strangers' scores. Hiding a row is
+    reversible; deleting one is not.
+
 - Rank in a CTE — a window function cannot appear in `WHERE`. Delete on the FULL
   key: **deleting on `id` alone is a data-loss bug** once the table is
   partitioned, because `id` is not unique across partitions. Break ties
