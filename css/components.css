@@ -345,6 +345,14 @@
 }
 
 .board__empty { color: var(--text-muted); font-size: var(--fs-sm); }
+
+/* Explains the per-player cap on the global board. Quiet by design — it is a
+   footnote, not a status message. */
+.board__note {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  margin-top: var(--sp-2);
+}
 .board__empty--error { color: var(--danger); }
 
 .scorelist {

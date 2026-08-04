@@ -111,6 +111,12 @@ export function createScoresView(overlays) {
         list.appendChild(scoreRow(i + 1, entry.player_name, entry.score, entry.is_verified));
       });
       wrap.appendChild(list);
+      // Say the rule out loud. A player whose fourth-best run does not appear
+      // would otherwise read a working cap as a failed submission.
+      wrap.appendChild(el('p', {
+        className: 'board__note',
+        text: 'Best 3 per player.'
+      }));
     }).catch((error) => {
       wrap.removeChild(loading);
       wrap.appendChild(el('p', {

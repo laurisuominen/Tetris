@@ -9,8 +9,15 @@
  *
  * `js/shared/storage/storage.js` reads `window.localStorage`, which does not
  * exist under Node, so a minimal in-memory stand-in is installed here. It is a
- * Map behind the two methods the wrapper calls — no dependency, and it behaves
- * the same in the browser runner, where the real `window` is left alone.
+ * Map behind the two methods the wrapper calls — no dependency.
+ *
+ * The stand-in is used in the BROWSER runner too, and that is a correction. The
+ * first version installed it only when `window.localStorage` was missing, so
+ * test/index.html ran against real storage: `freshStore()` cleared the Map,
+ * which was a no-op there, the `test_scores_*` keys survived the page, and the
+ * SECOND run of the suite in a given browser profile failed on doubled rows —
+ * a green suite that goes red on reload with no code change. It also left junk
+ * in the visitor's storage. Both runners now share one in-memory map.
  */
 
 import { describe, it, expect } from './harness.js';
@@ -24,12 +31,19 @@ const fakeStorage = {
   setItem: (k, v) => { memory.set(k, String(v)); },
 };
 
-// Only stub what is missing. In test/index.html `window` is the real thing and
-// overwriting it would break the page running the tests.
 if (typeof globalThis.window === 'undefined') {
   globalThis.window = { localStorage: fakeStorage };
-} else if (!globalThis.window.localStorage) {
-  globalThis.window.localStorage = fakeStorage;
+} else {
+  // A real `window` is left in place — the browser runner is a page and needs
+  // it — but `localStorage` is shadowed. Plain assignment is not enough: the
+  // real one is an accessor on Window.prototype with no setter, so `window
+  // .localStorage = fake` throws under a module's strict mode. defineProperty
+  // installs an own property that wins over the inherited getter.
+  Object.defineProperty(globalThis.window, 'localStorage', {
+    value: fakeStorage,
+    configurable: true,
+    writable: true
+  });
 }
 
 /** A fresh key per test, so no case can be polluted by the one before it. */
