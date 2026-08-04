@@ -56,25 +56,24 @@ limit to live with.
 Custom SMTP is also what unlocks step 3: free projects created after 2026-06-03
 cannot edit auth email templates on the default mailer.
 
-## 3. Both email templates must send the CODE, not a link
+## 3. The code must be VISIBLE TEXT, and 6 digits
 
-**STILL OUTSTANDING as of 2026-08-03 — this is what is currently breaking
-sign-up.** Measured by signing up a throwaway address and reading the delivered
-message: the *Confirm signup* body arrives as
+Two faults were found here on 2026-08-04, by reading a delivered message. Both
+are easy to make and neither produces an error anywhere.
+
+**Fault 1 — `{{ .Token }}` inside an `href`.** The template had been changed
+from `{{ .ConfirmationURL }}` to `{{ .Token }}`, but in the link target:
 
 ```html
-<h2>Confirm your email address</h2>
-<p>Follow the link below to confirm this email address and finish signing up.</p>
-<p><a href="{{ .ConfirmationURL }}">Confirm email address</a></p>
+<p><a href="{{ .Token }}">Confirm email address</a></p>   <!-- WRONG -->
 ```
 
-The subject line has been customised but the body still sends a LINK. The
-account page asks for a 6-digit code, so there is nothing for the player to
-type and the account can never be confirmed from the site. Delivery itself is
-fine — the mail arrived from `arcade@aihealgenius.com` within seconds.
+The delivered mail was `<a href="29711893">Confirm email address</a>`. The token
+is in the email but never renders as text, so the player sees a link and no
+code — and the link is dead, because a bare token is not a URL. The template
+looks correct at a glance, which is exactly why it survived so long.
 
-**Authentication → Emails → Templates.** In *Confirm signup* and *Reset
-password*, replace `{{ .ConfirmationURL }}` with `{{ .Token }}`. Working bodies:
+The token must be **body text**:
 
 ```html
 <h2>Confirm your email address</h2>
@@ -90,18 +89,16 @@ password*, replace `{{ .ConfirmationURL }}` with `{{ .Token }}`. Working bodies:
 <p>The code expires in one hour. If you did not ask for this, ignore this email.</p>
 ```
 
-The *Reset password* template was not directly observed — GoTrue will not send a
-recovery mail to an unconfirmed account, and no confirmed account exists yet.
-Assume it is also still the default link and change it too.
+**Fault 2 — the OTP length had been changed to 8.** Three consecutive sends
+carried 8-digit tokens (`82127703`, `58341838`, `29711893`). The account page
+labels the field "6-digit code" and sets `maxlength: '6'`, so an 8-digit token
+cannot be typed in full and confirmation fails with nothing on screen to explain
+why. This is the second fault hiding behind the first: fixing the template alone
+would have produced a visible code that still did not work.
 
-The account pages ask the player to type a 6-digit code. If either template
-still sends a link, that flow is broken for every user regardless of what the
-code does — `confirmSignUpCode()` and `confirmPasswordReset()` have nothing to
-verify.
-
-`supabase/templates/confirm.html` and `recovery.html` are the local mirrors.
-They are a copy for `supabase start`; editing them does not change production.
-Keep the two in step by hand.
+**Authentication → Sign In / Providers → Email → Email OTP Length: 6.** That
+matches `config.toml` (`otp_length = 6`), the client, the copy and the tests.
+Changing it in the dashboard without changing all four is what caused the drift.
 
 ## 4. Confirm email, and the Site URL
 
