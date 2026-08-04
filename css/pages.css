@@ -139,6 +139,14 @@ body {
 .scores .num { text-align: right; }
 .scores .rank { color: var(--text-muted); width: 3ch; }
 .scores .initials { font-weight: 700; letter-spacing: 0.15em; }
+
+/* A gamer tag rather than three initials. The tracking above is tuned for three
+   characters and makes a 15-character tag wide enough to overflow the table on
+   a phone; tags also carry their own case, which the wide spacing fights. */
+.scores .initials--tag {
+  letter-spacing: normal;
+  overflow-wrap: anywhere;
+}
 .scores__score { color: var(--accent-strong); font-weight: 600; }
 
 /* Verified badge: this score was submitted by a signed-in account, so the name

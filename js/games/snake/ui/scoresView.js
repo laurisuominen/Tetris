@@ -57,7 +57,12 @@ function board(title) {
 function scoreRow(rank, name, score, verified = false) {
   const li = el('li', { className: 'scorelist__row' });
   li.appendChild(el('span', { className: 'scorelist__rank', text: `${rank}.` }));
-  li.appendChild(el('span', { className: 'scorelist__name', text: name }));
+  // Same reason as the leaderboard table: the wide tracking suits three
+  // characters and not a 15-character tag.
+  li.appendChild(el('span', {
+    className: verified ? 'scorelist__name scorelist__name--tag' : 'scorelist__name',
+    text: name
+  }));
   if (verified) {
     // role="img" plus a label: without it a screen reader reads the tick as
     // punctuation or skips it, and the distinction it draws is the point.
@@ -87,7 +92,7 @@ export function createScoresView(overlays) {
 
     const list = el('ol', { className: 'scorelist' });
     scores.slice(0, 10).forEach((entry, i) => {
-      list.appendChild(scoreRow(i + 1, entry.initials || '—', entry.score));
+      list.appendChild(scoreRow(i + 1, entry.name || '—', entry.score, entry.verified));
     });
     wrap.appendChild(list);
     return wrap;
@@ -178,12 +183,13 @@ export function createScoresView(overlays) {
       saveBtn.disabled = true;
       if (input) input.disabled = true;
 
-      // The name sent to the server. When signed in the server overrides it
-      // from the database anyway, so this only decides what the LOCAL board
-      // stores — and createScoresStore clamps that to [A-Z0-9]{3}, so a gamer
-      // tag shows up locally as its first three characters. The local board is
-      // a per-browser record, not an identity.
-      const initials = signedInTag || input.value || 'AAA';
+      // The name for both boards. When signed in the server overrides it from
+      // the database anyway, so what is sent here really only decides what the
+      // LOCAL board stores — and `verified` is what tells createScoresStore
+      // whether this is an owned gamer tag to keep whole or three typed
+      // initials to clamp to [A-Z0-9]{3}.
+      const verified = Boolean(signedInTag);
+      const displayName = signedInTag || input.value || 'AAA';
 
       // Local first and unconditionally: it cannot fail and it is the copy the
       // player owns. The network is best-effort on top of that.
@@ -191,7 +197,8 @@ export function createScoresView(overlays) {
         score: state.score,
         apples: state.apples,
         length: state.body.length,
-        initials
+        name: displayName,
+        verified
       });
 
       setText(status, 'Submitting to the global leaderboard…');
@@ -199,7 +206,7 @@ export function createScoresView(overlays) {
 
       try {
         const seconds = Math.floor((state.playTimeMs || 0) / 1000);
-        await submitScore(GAME_ID, initials, state.score, seconds);
+        await submitScore(GAME_ID, displayName, state.score, seconds);
         setText(status, 'Saved locally and globally.');
         status.className = 'gameover__status gameover__status--ok';
       } catch (error) {

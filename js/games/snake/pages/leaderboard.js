@@ -41,11 +41,16 @@ function renderTable(scores, isGlobal) {
   scores.forEach((entry, i) => {
     const tr = el('tr');
     tr.appendChild(el('td', { text: String(i + 1), className: 'rank' }));
+    // Both boards mark an owned gamer tag; only the source of the flag
+    // differs — the database column globally, the stored row locally.
+    const verified = isGlobal ? Boolean(entry.is_verified) : entry.verified === true;
     const nameCell = el('td', {
-      text: isGlobal ? entry.player_name : (entry.initials || '—'),
-      className: 'initials'
+      text: isGlobal ? entry.player_name : (entry.name || '—'),
+      // An owned tag is up to 15 characters; the wide tracking below is tuned
+      // for three, and at that length it pushes the table wider than a phone.
+      className: verified ? 'initials initials--tag' : 'initials'
     });
-    if (isGlobal && entry.is_verified) {
+    if (verified) {
       // role="img" plus a label: a bare tick is read as punctuation or skipped,
       // and the distinction between an owned gamer tag and typed-in initials is
       // the entire point of showing it.
