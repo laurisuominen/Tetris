@@ -11,7 +11,7 @@ import { loadScores } from '../storage/scoresStore.js';
 import { fetchTopScores } from '../../../shared/net/leaderboard.js';
 import { el, qs } from '../../../shared/util/dom.js';
 import { getSession } from '../../../shared/net/auth.js';
-import { createReportControl } from '../../../shared/account/reportControl.js';
+import { createReportLink } from '../../../shared/account/reportLink.js';
 
 const GAME_ID = 'tetris';
 
@@ -64,10 +64,10 @@ function renderTable(scores, isGlobal) {
     }
     // Reporting requires a session, and only an owned gamer tag can be
     // reported — typed-in initials belong to nobody, so there is no account to
-    // action. The control is added asynchronously because the session check is
-    // async and the table renders synchronously.
+    // action. The link is offered rather than the form itself: a form per row
+    // does not fit a table cell, and the report page can explain itself.
     if (isGlobal && entry.is_verified && signedIn) {
-      nameCell.appendChild(createReportControl(entry.player_name));
+      nameCell.appendChild(createReportLink(entry.player_name));
     }
     tr.appendChild(nameCell);
     tr.appendChild(el('td', {
