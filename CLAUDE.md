@@ -126,13 +126,13 @@ since that rule was written, and it was approved explicitly.
 ```
 index.html          arcade hub (the game picker)
 games/<name>/       one directory per game: index.html and its sub-pages
-account/            sign in, create account, reset password — ordinary
-                    documents, not game pages
+account/            sign in, create account, reset password, report a gamer
+                    tag — ordinary documents, not game pages
 css/                tokens.css is the shared design system; hub.css, pages.css,
                     account.css (the only form styling in the project)
 js/
   hub/              registry.js (the game list) + hub.js
-  account/pages/    the three account page modules
+  account/pages/    the four account page modules
   shared/           game-agnostic modules — do not edit to add a game
     engine/         createLoop (fixed timestep, injected), clock
     render/         dpr, geometry (grid-size agnostic)

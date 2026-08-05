@@ -168,53 +168,26 @@ body {
 
 /* --- report a name -------------------------------------------------------- */
 
-/* Collapsed to a quiet text button by default. A reason field open on every row
-   turns the table into a wall of controls, and almost no row is ever reported. */
-.report { display: inline-flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
-
-.report__toggle {
-  background: none;
-  border: 0;
-  padding: var(--sp-1) var(--sp-2);
+/* A quiet link, and only a link — the form it used to open inline now lives at
+   /account/report/. The inline version could not be made to behave: it set
+   `hidden` on its panel, but `.report__panel { display: inline-flex }` was an
+   author rule and beat the user agent's `[hidden] { display: none }`, so every
+   reportable row rendered with an open text input and a Send button that
+   wrapped to one letter per line at 375px.
+   Muted rather than accent-coloured: it must not compete with the score. */
+.report__link {
   margin-left: var(--sp-2);
-  font: inherit;
   font-size: var(--fs-xs);
+  font-weight: 400;
+  letter-spacing: normal;
   color: var(--text-muted);
-  cursor: pointer;
   text-decoration: underline;
+  /* The name cell sets 0.15em tracking for three initials; without this the
+     word "Report" inherits it and reads as a heading. */
+  white-space: nowrap;
 }
 
-.report__toggle:hover { color: var(--danger); }
-
-.report__panel { display: inline-flex; align-items: center; gap: var(--sp-2); }
-
-.report__reason {
-  font: inherit;
-  font-size: var(--fs-xs);
-  padding: var(--sp-1) var(--sp-2);
-  color: var(--text-primary);
-  background: var(--bg-base);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--r-sm);
-  min-width: 12rem;
-  max-width: 100%;
-}
-
-.report__send {
-  font: inherit;
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  padding: var(--sp-1) var(--sp-3);
-  color: var(--bg-base);
-  background: var(--accent);
-  border: 0;
-  border-radius: var(--r-sm);
-  cursor: pointer;
-}
-
-.report__status { font-size: var(--fs-xs); color: var(--text-muted); }
-.report__status--ok    { color: var(--success); }
-.report__status--error { color: var(--danger); }
+.report__link:hover { color: var(--danger); }
 
 .empty {
   padding: var(--sp-6);

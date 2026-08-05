@@ -113,6 +113,15 @@ button {
 
 .field__input[aria-invalid="true"] { border-color: var(--danger); }
 
+/* The report reason. A textarea rather than an input because a report worth
+   reading runs to a sentence or two; `font: inherit` above already stops it
+   falling back to the UA monospace default. Vertical resize only — horizontal
+   would let it push past the card. */
+.field__input--reason {
+  min-height: 6rem;
+  resize: vertical;
+}
+
 /* The 6-digit code: spaced and tabular so a mistyped digit is easy to spot. */
 .field__input--code {
   max-width: 9rem;

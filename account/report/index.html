@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#111318">
+<meta name="description" content="Report a gamer tag on the arcade leaderboards for review.">
+<meta name="robots" content="noindex">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self' https://obkndxwkpodmcqumocfi.supabase.co http://127.0.0.1:54321 http://localhost:54321; img-src 'self' data:; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; base-uri 'none'; form-action 'none'">
+<title>Report a Player — Arcade</title>
+<link rel="stylesheet" href="../../css/tokens.css">
+<link rel="stylesheet" href="../../css/pages.css">
+<link rel="stylesheet" href="../../css/account.css">
+</head>
+<body>
+<main class="page">
+
+  <nav class="page__nav">
+    <a class="link link--home" href="../">Your account</a>
+    <a class="link" href="../../">Arcade</a>
+  </nav>
+
+  <h1 class="page__title">Report a player</h1>
+  <p class="page__lead">
+    Gamer tags are checked when an account is created, but no automatic check
+    catches everything. If one on the leaderboard is offensive or impersonates
+    someone, tell us here and a human will look at it.
+  </p>
+
+  <p class="sr-only" id="report-live" role="status" aria-live="polite"></p>
+
+  <div id="report-root"></div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module" src="../../js/account/pages/report.js"></script>
+</body>
+</html>
