@@ -39,15 +39,25 @@ a suite.
 needs Docker and a running `supabase start`, and it writes to the local
 database, so it would turn `node test/run-node.mjs` red on any machine without
 Docker up. Run it by hand after touching auth, the account pages, the Edge
-Functions or the accounts migration — it covers the things unit tests cannot
-reach (the auth hook firing inside the signup transaction, column-level grants,
-`is_verified` recomputing on account deletion, the 6-digit code arriving). Every
-run mints a fresh email and tag, so it is re-runnable.
+Functions, the accounts migration or the achievements migration — it covers the
+things unit tests cannot reach (the auth hook firing inside the signup
+transaction, column-level grants, `is_verified` recomputing on account deletion,
+the 6-digit code arriving, badges being awarded exactly once and cascading away
+with the account). Every run mints a fresh email and tag, so it is re-runnable.
 
 ```bash
 supabase start
-node test/e2e-accounts.mjs     # 31 checks; needs the local stack up
+supabase functions serve        # the suite calls four of them, not just one
+node test/e2e-accounts.mjs      # 48 checks; needs the local stack up
 ```
+
+On Docker Desktop for macOS the CLI may hang silently with no output and no
+containers: it looks for `/var/run/docker.sock`, which Desktop does not create
+unless "Allow the default Docker socket to be used" is on. The socket is at
+`~/.docker/run/docker.sock` (the `desktop-linux` context), so
+`export DOCKER_HOST="unix://$HOME/.docker/run/docker.sock"` is the fix. Note
+`supabase start` prints nothing at all when it is not attached to a TTY, so
+silence is not a failure signal — watch `docker ps` instead.
 
 Supabase (local, Docker required):
 
@@ -585,6 +595,18 @@ array, so the client is safe to ship ahead of the function deploy. The award
 path is wrapped: a badge failure logs and returns `unlocked: []`, and never
 fails the submission — the score is committed by then and saying otherwise
 would be false.
+
+Verified end to end against the local stack 2026-08-15: the migration applies
+from scratch; `record_play` accumulates plays across games, never lets
+`best_score` go backwards, and reports **one** distinct day for four plays in a
+day; `on conflict do nothing ... returning` returns only genuinely-new keys;
+`player_stats` and `player_days` answer 42501 even to their owner's token;
+badges cascade away on account deletion while the scores survive unverified.
+
+**One thing that does NOT generalise from the accounts migration:** `select=*`
+on `player_achievements` SUCCEEDS. `*` fails on `profiles` and `leaderboard`
+because their grants WITHHOLD a column, not because the grants are
+column-level. This table withholds nothing, so there is no 42501 to assert.
 
 **The per-game score thresholds are measured, not derived, and the derivation
 is in the file.** Read from the live board 2026-08-15 and chosen so bronze and

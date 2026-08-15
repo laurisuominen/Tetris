@@ -173,9 +173,18 @@ create policy "Allow public read access to player achievements"
 -- COLUMN-LEVEL GRANT, for consistency with the two tables it is read alongside
 -- rather than because a column here is sensitive — all three are public. Naming
 -- them keeps the habit intact, and it means a column added later is private by
--- default instead of public by accident. Remember the consequence the accounts
--- migration documents: `select=*` on this table is now 42501, not a filtered
--- result. Name your columns.
+-- default instead of public by accident.
+--
+-- NOTE THE DIFFERENCE FROM profiles AND leaderboard, because it is easy to
+-- over-generalise. On those two, `select=*` is 42501 — but that is not caused by
+-- the grant being column-level, it is caused by the grant WITHHOLDING something
+-- (banned_at, user_id). Postgres expands `*` and checks privilege on every
+-- column; here the list is every column, so `select=*` SUCCEEDS.
+-- Measured 2026-08-15 against the local stack: GET /rest/v1/player_achievements
+-- ?select=* returned 200 with all three fields, while the same request against
+-- profiles returned 42501. The habit of naming columns still applies — it is
+-- what keeps a future private column private — but do not write a test asserting
+-- 42501 here, because there is nothing on this table to hide.
 revoke all privileges on table public.player_achievements from anon, authenticated;
 grant select (user_id, achievement_key, earned_at)
   on table public.player_achievements to anon, authenticated;
