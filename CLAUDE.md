@@ -675,7 +675,12 @@ so the Edge Function is the real gate.
   `element.style.width = '77px'` applied — CSP does not restrict CSSOM. Use
   classes; reach for `element.style.x =` only for genuinely dynamic values, as
   the renderers do for canvas sizing.
-  `js/games/tetris/ui/scoresView.js` and `js/games/tetris/pages/leaderboard.js`
-  still style themselves inline and are rendering unstyled in production.
+  This entry used to end by naming `js/games/tetris/ui/scoresView.js` and
+  `js/games/tetris/pages/leaderboard.js` as still styling themselves inline and
+  rendering unstyled in production. **That was fixed in a1722f8 ("Style
+  Tetris's score screens with classes, not blocked inline styles") and this
+  line was not updated with it.** Re-checked 2026-08-15: neither file contains
+  a style attribute, and `attrs: { style: … }` appears nowhere under `js/`.
+  The rule above stands; there is no longer a known violation of it.
 - Lazy-load sprites and audio behind the menu; ship only the start-screen critical
   path first.
