@@ -66,6 +66,15 @@
   --danger:        oklch(0.65 0.20 25);
   --success:       oklch(0.75 0.16 150);
 
+  /* Achievement tiers. Kept clear of --accent (blue), --success (green) and
+     --danger (red) in hue so a badge mark never reads as a score, a status or a
+     warning. Lightness is high on all three because they sit on --bg-elevated;
+     colour alone never carries meaning here — every mark has an aria-label and
+     the shelf writes the tier out in words. */
+  --tier-bronze: oklch(0.72 0.11 55);
+  --tier-silver: oklch(0.82 0.02 265);
+  --tier-gold:   oklch(0.86 0.14 95);
+
   /* Spacing — 4px base. */
   --sp-1: 0.25rem;
   --sp-2: 0.5rem;

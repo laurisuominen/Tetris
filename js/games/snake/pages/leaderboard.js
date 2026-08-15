@@ -10,6 +10,7 @@ import { fetchTopScores } from '../../../shared/net/leaderboard.js';
 import { el, qs } from '../../../shared/util/dom.js';
 import { getSession } from '../../../shared/net/auth.js';
 import { createReportLink } from '../../../shared/account/reportLink.js';
+import { attachBadgeMarks } from '../../../shared/achievements/boardMarks.js';
 
 const GAME_ID = 'snake';
 
@@ -24,7 +25,7 @@ const root = qs('#scores-root');
 const boards = el('div', { className: 'boards' });
 root.appendChild(boards);
 
-function renderTable(scores, isGlobal) {
+function renderTable(scores, isGlobal, markAnchors = null) {
   const table = el('table', { className: 'scores' });
 
   const headers = isGlobal
@@ -54,11 +55,20 @@ function renderTable(scores, isGlobal) {
       // role="img" plus a label: a bare tick is read as punctuation or skipped,
       // and the distinction between an owned gamer tag and typed-in initials is
       // the entire point of showing it.
-      nameCell.appendChild(el('span', {
+      const tick = el('span', {
         className: 'scores__badge',
         text: '✓',
         attrs: { role: 'img', 'aria-label': 'Verified account' }
-      }));
+      });
+      nameCell.appendChild(tick);
+      // The achievement mark arrives in a second pass and slots in after the
+      // tick, ahead of the report link. Global rows only: a local row's name is
+      // whatever this browser stored and may belong to nobody at all.
+      if (isGlobal && markAnchors) {
+        const tag = entry.player_name;
+        if (!markAnchors.has(tag)) markAnchors.set(tag, []);
+        markAnchors.get(tag).push(tick);
+      }
     }
     // Reporting requires a session, and only an owned gamer tag can be
     // reported — typed-in initials belong to nobody, so there is no account to
@@ -113,11 +123,15 @@ Promise.all([
 ]).then(([scores, session]) => {
   signedIn = Boolean(session);
   globalWrap.removeChild(loading);
+  const markAnchors = new Map();
   globalWrap.appendChild(
     scores.length
-      ? renderTable(scores, true)
+      ? renderTable(scores, true, markAnchors)
       : el('div', { className: 'empty', text: 'No global scores yet.' })
   );
+  // Second pass, deliberately not awaited: the table is already on screen and
+  // the marks fill in behind it. See boardMarks.js.
+  attachBadgeMarks(markAnchors);
   // Say the rule out loud. A player whose fourth-best run does not appear would
   // otherwise read a working cap as a failed submission.
   if (scores.length) {

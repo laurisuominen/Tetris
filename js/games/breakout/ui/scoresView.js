@@ -18,6 +18,7 @@ import { fetchTopScores, submitScore } from '../../../shared/net/leaderboard.js'
 
 import { getSession } from '../../../shared/net/auth.js';
 import { getCachedProfile, clearCachedProfile } from '../../../shared/account/session.js';
+import { unlockedSentence } from '../../../shared/achievements/badgeShelf.js';
 
 const GAME_ID = 'breakout';
 
@@ -143,6 +144,11 @@ export function createScoresView(overlays) {
       return;
     }
 
+    // Badges unlocked by this run, filled in by submit() and read by the
+    // summary card it opens afterwards. Announcing them on the summary rather
+    // than mid-run is deliberate — see unlockedSentence.
+    let unlocked = [];
+
     const container = el('div');
     container.appendChild(el('p', {
       className: 'gameover__headline',
@@ -209,7 +215,8 @@ export function createScoresView(overlays) {
 
       try {
         const seconds = Math.floor((state.playTimeMs || 0) / 1000);
-        await submitScore(GAME_ID, displayName, state.score, seconds);
+        const result = await submitScore(GAME_ID, displayName, state.score, seconds);
+        unlocked = result.unlocked;
         setText(status, 'Saved locally and globally.');
         status.className = 'gameover__status gameover__status--ok';
       } catch (error) {
@@ -220,7 +227,7 @@ export function createScoresView(overlays) {
 
       // Whatever happened, show the boards — with the status above still read
       // out by the live region rather than replaced by a fresh card.
-      setTimeout(() => showLeaderboardOnly(state), 900);
+      setTimeout(() => showLeaderboardOnly(state, unlocked), 900);
     }
 
     saveBtn.onclick = submit;
@@ -246,7 +253,7 @@ export function createScoresView(overlays) {
     });
   }
 
-  function showLeaderboardOnly(state) {
+  function showLeaderboardOnly(state, unlocked = []) {
     const container = el('div');
 
     if (state) {
@@ -258,6 +265,14 @@ export function createScoresView(overlays) {
         className: 'gameover__detail',
         text: `Level ${state.level}`
       }));
+
+      // Only added when there is something to say. The card is built and then
+      // opened, so the sentence is already in the dialog when it appears and
+      // needs no live region of its own.
+      const badges = unlockedSentence(unlocked);
+      if (badges) {
+        container.appendChild(el('p', { className: 'gameover__badges', text: badges }));
+      }
     }
 
     container.appendChild(boardsPair());

@@ -166,6 +166,22 @@ body {
   margin-left: var(--sp-1);
 }
 
+/* Achievement mark: ONE per name, coloured by the best tier that player holds.
+   A row of nineteen badges beside every name would bury the score, which is what
+   the table is about. The count lives in the aria-label and the title attribute
+   rather than on screen, so the column width does not move.
+   Deliberately a different glyph from the verified tick above — they answer
+   different questions ("is this name owned" vs "what has this player done"). */
+.scores__mark {
+  font-size: var(--fs-xs);
+  margin-left: var(--sp-1);
+  color: var(--text-muted);
+}
+
+.scores__mark--bronze { color: var(--tier-bronze); }
+.scores__mark--silver { color: var(--tier-silver); }
+.scores__mark--gold   { color: var(--tier-gold); }
+
 /* --- report a name -------------------------------------------------------- */
 
 /* A quiet link, and only a link — the form it used to open inline now lives at

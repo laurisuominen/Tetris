@@ -141,8 +141,12 @@ js/
     ui/             overlay shell, a11y announcer, procedural backgrounds
     audio/          synth
     account/        session.js — localStorage display cache, NO network
+    achievements/   badgeShelf.js (pure DOM; imports the catalogue from
+                    supabase/functions/_shared/badges.js), boardMarks.js
+                    (the one place that module meets net/)
     net/            client.js (the one Supabase client), leaderboard.js,
-                    auth.js — the ONLY modules that talk to the network
+                    auth.js, badges.js — the ONLY modules that talk to the
+                    network
     util/           dom, emitter, rng
   games/<name>/     one directory per game, mirroring the shared layout
                     tetris/, snake/ and breakout/ exist; use snake/ or
@@ -151,7 +155,10 @@ js/
 sw.js               ONE service worker, scope '/', covering the whole site
 supabase/
   functions/        Edge Functions. submit-score, before-user-created (an auth
-                    hook), report-name, delete-account, and _shared/
+                    hook), report-name, delete-account, and _shared/ —
+                    cors.ts, gamerTag.js and badges.js. The two .js files are
+                    plain, import-free and loaded unchanged by Deno, Node and
+                    the browser.
   migrations/       SQL
   templates/        LOCAL mirrors of the two auth emails, so `supabase start`
                     sends the 6-digit code production sends. Production's live
@@ -538,6 +545,55 @@ column-level grants are a real boundary (`select('*')` → 42501 on both tables,
 `banned_at` and `user_id` unreadable, `name_reports` unreachable, direct INSERT
 refused); and deleting an account leaves its scores in place with
 `is_verified` flipped to false.
+
+## Achievement badges
+
+Account holders earn badges. `migrations/20260815000000_achievements.sql` adds
+`player_stats`, `player_days` and `player_achievements`, plus
+`public.record_play(user_id, game_id, score)`. Anonymous runs earn nothing —
+`AAA` is shared by strangers, so there is no honest key to award against.
+
+**Stats are the source of truth; a badge is a threshold over them.** The unlock
+record is binary plus a timestamp and stores no progress, which is what makes a
+badge added later award itself from counters that have been accumulating all
+along. The catalogue and the rule live in
+`supabase/functions/_shared/badges.js` — plain `.js`, zero imports, the
+`gamerTag.js` pattern, so Deno, Node, the browser and the tests load the same
+file. Unlike the blocklist, none of it is secret: the client imports it to
+render the shelf.
+
+Four things that are load-bearing:
+
+- **The counters cannot come from `leaderboard`.** It is a top-100-per-game
+  window behind a destructive trigger, so "50 games played" is not derivable
+  from it. Nothing prunes the new tables; do not teach `prune_leaderboard`
+  about them.
+- **`player_stats` and `player_days` are service-role only** — RLS on, no
+  policies, no grants — because they ARE the cross-game history that
+  `leaderboard.user_id` is withheld to prevent assembling. `player_achievements`
+  is publicly readable, which leaks nothing new: `profiles.id` and
+  `profiles.gamer_tag` are already both granted, so tag → id is already public.
+- **Distinct days are counted from `player_days`, one row per player per UTC
+  date.** A per-game `distinct_days` counter summed across games double-counts a
+  day on which someone played two games. The date is UTC and written down as
+  such; timezone-naive streak aggregation is the classic bug here.
+- **`top-ten` / `rank-one` use the RAW rank**, not the rank the board displays.
+  `capPerPlayer(3)` means a player can hold raw rank 4 and appear second.
+
+`submitScore` now resolves to `{ row, unlocked }`. It still accepts the old bare
+array, so the client is safe to ship ahead of the function deploy. The award
+path is wrapped: a badge failure logs and returns `unlocked: []`, and never
+fails the submission — the score is committed by then and saying otherwise
+would be false.
+
+**The per-game score thresholds are measured, not derived, and the derivation
+is in the file.** Read from the live board 2026-08-15 and chosen so bronze and
+silver sit in the 30–60% band and gold in 5–15%. The sample is the retained top
+100, so it is survivorship-biased and counts rows rather than players — both
+noted in-code. Revisit from `player_stats` once there is enough history to ask
+the question per player. This is NOT a licence to invent the next number by
+hand; Tetris's anti-cheat ceiling below is still the example of what that
+produces.
 
 ## Anti-cheat
 

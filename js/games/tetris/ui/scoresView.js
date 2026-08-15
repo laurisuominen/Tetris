@@ -16,6 +16,7 @@ import { fetchTopScores, submitScore } from '../../../shared/net/leaderboard.js'
 
 import { getSession } from '../../../shared/net/auth.js';
 import { getCachedProfile, clearCachedProfile } from '../../../shared/account/session.js';
+import { unlockedSentence } from '../../../shared/achievements/badgeShelf.js';
 
 const GAME_ID = 'tetris';
 
@@ -204,17 +205,19 @@ export function createScoresView(overlays) {
       });
 
       // Submit globally if valid score > 0
+      let unlocked = [];
       if (state.score > 0) {
         try {
           setText(status, 'Submitting to global leaderboard...');
           const sessionDurationSeconds = Math.floor((state.playTimeMs || 0) / 1000);
-          await submitScore(GAME_ID, displayName, state.score, sessionDurationSeconds);
+          const result = await submitScore(GAME_ID, displayName, state.score, sessionDurationSeconds);
+          unlocked = result.unlocked;
         } catch (e) {
           console.error('Failed to submit global score', e);
         }
       }
 
-      showLeaderboardOnly(state);
+      showLeaderboardOnly(state, unlocked);
     }
 
     saveBtn.onclick = submit;
@@ -239,10 +242,15 @@ export function createScoresView(overlays) {
       buttons: [saveBtn]
     });
 
-    requestAnimationFrame(() => input.focus());
+    // Guarded, because `input` is null for a signed-in player — their name comes
+    // from `profiles` and the card has no field. Unguarded this threw
+    // "Cannot read properties of null (reading 'focus')" on every signed-in game
+    // over, in a callback nothing awaits, so the card rendered and the error went
+    // only to the console. Snake and Breakout have no equivalent line.
+    if (input) requestAnimationFrame(() => input.focus());
   }
 
-  function showLeaderboardOnly(state) {
+  function showLeaderboardOnly(state, unlocked = []) {
     const container = el('div');
 
     if (state) {
@@ -254,6 +262,14 @@ export function createScoresView(overlays) {
         className: 'gameover__detail',
         text: `Level ${state.level}   Lines ${state.lines}`
       }));
+
+      // Only added when there is something to say. The card is built and then
+      // opened, so the sentence is already in the dialog when it appears and
+      // needs no live region of its own.
+      const badges = unlockedSentence(unlocked);
+      if (badges) {
+        container.appendChild(el('p', { className: 'gameover__badges', text: badges }));
+      }
     }
 
     container.appendChild(boardsPair());
