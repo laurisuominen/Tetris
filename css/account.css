@@ -283,6 +283,106 @@ button {
 
 .profile__value--tag { font-weight: 700; }
 
+/* --- Badge shelf ---------------------------------------------------------- */
+
+/* `.page h3`/`.page h4` exist in pages.css, so every heading rule here carries
+   the `.page` prefix — see the specificity note at the top of this file. */
+
+.shelf {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.page .shelf__heading {
+  margin-top: 0;
+  font-size: var(--fs-base);
+}
+
+.page .shelf__count {
+  margin: 0;
+  font-family: var(--font-num);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+.page .shelf__section {
+  margin: var(--sp-3) 0 0;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.shelf__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.shelf__item {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: baseline;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+}
+
+/* A locked badge is legible, not invisible: the shelf's job is to say what to do
+   next, and greying it into unreadability defeats that.
+   NOT `opacity`, which was the first attempt and measured wrong — at 0.55 over
+   --surface-1 the description came out at 3.53:1 and the mark at 2.49:1, both
+   under the 4.5:1 AA floor, because opacity composites the text toward the
+   background. Explicit token colours are measurable, and these are: title
+   8.84:1, description and mark 5.27:1 (measured in-browser 2026-08-15 by
+   painting the resolved colours into a canvas and computing WCAG contrast on
+   the resulting pixels). Locked is signalled by the mark losing its tier colour,
+   which is also the only difference that survives the shelf being read aloud —
+   every item states "earned" or "not yet earned" in its aria-label. */
+.shelf__item.is-locked .shelf__title { color: var(--text-secondary); }
+.shelf__item.is-locked .shelf__desc  { color: var(--text-muted); }
+
+.shelf__mark {
+  font-size: var(--fs-sm);
+  line-height: 1;
+  color: var(--text-muted);
+}
+
+.shelf__item.is-earned.shelf__item--bronze .shelf__mark { color: var(--tier-bronze); }
+.shelf__item.is-earned.shelf__item--silver .shelf__mark { color: var(--tier-silver); }
+.shelf__item.is-earned.shelf__item--gold   .shelf__mark { color: var(--tier-gold); }
+
+.shelf__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.shelf__title {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.shelf__desc {
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+}
+
+.shelf__when {
+  font-family: var(--font-num);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
 /* --- Delete confirmation -------------------------------------------------- */
 
 .danger {

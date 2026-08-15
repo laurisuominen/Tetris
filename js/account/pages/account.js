@@ -22,6 +22,8 @@ import {
   getSession, getProfile, signIn, signOut, deleteAccount
 } from '../../shared/net/auth.js';
 import { setCachedProfile, clearCachedProfile } from '../../shared/account/session.js';
+import { fetchMyBadges } from '../../shared/net/badges.js';
+import { renderBadgeShelf } from '../../shared/achievements/badgeShelf.js';
 
 const root = qs('#account-root');
 const a11y = createA11y({ liveRegion: qs('#account-live') });
@@ -242,6 +244,11 @@ function renderSignedIn(profile) {
     }));
   }
 
+  // Badges load after the page, not with it. The profile is what this screen is
+  // FOR, and blocking it on a second round trip would mean a slow network hides
+  // the sign-out button behind a spinner. The mount renders its own state.
+  section.appendChild(badgeMount());
+
   const status = el('p', { className: 'status' });
   section.appendChild(status);
 
@@ -273,6 +280,37 @@ function renderSignedIn(profile) {
   section.appendChild(deleteBlock(tag));
 
   root.appendChild(section);
+}
+
+/**
+ * The badge shelf, fetched after the profile has already rendered.
+ *
+ * A failure here is reported in place and goes no further: badges are the least
+ * important thing on this page, and a network blip must not take down the
+ * account controls next to them. It says so in a sentence rather than silently
+ * rendering an empty shelf, because "no badges yet" and "we could not check" are
+ * different facts and the first one is discouraging if it is not true.
+ */
+function badgeMount() {
+  const mount = el('div', { className: 'shelf-mount' });
+  const loading = el('p', { className: 'card__lead', text: 'Loading your badges…' });
+  mount.appendChild(loading);
+
+  fetchMyBadges()
+    .then((earned) => {
+      clear(mount);
+      mount.appendChild(renderBadgeShelf(earned));
+    })
+    .catch((error) => {
+      clear(mount);
+      mount.appendChild(el('p', {
+        className: 'status status--error',
+        text: 'Could not load your badges just now. Reload to try again.'
+      }));
+      console.error('Failed to load achievements', error);
+    });
+
+  return mount;
 }
 
 /**

@@ -39,15 +39,25 @@ a suite.
 needs Docker and a running `supabase start`, and it writes to the local
 database, so it would turn `node test/run-node.mjs` red on any machine without
 Docker up. Run it by hand after touching auth, the account pages, the Edge
-Functions or the accounts migration — it covers the things unit tests cannot
-reach (the auth hook firing inside the signup transaction, column-level grants,
-`is_verified` recomputing on account deletion, the 6-digit code arriving). Every
-run mints a fresh email and tag, so it is re-runnable.
+Functions, the accounts migration or the achievements migration — it covers the
+things unit tests cannot reach (the auth hook firing inside the signup
+transaction, column-level grants, `is_verified` recomputing on account deletion,
+the 6-digit code arriving, badges being awarded exactly once and cascading away
+with the account). Every run mints a fresh email and tag, so it is re-runnable.
 
 ```bash
 supabase start
-node test/e2e-accounts.mjs     # 31 checks; needs the local stack up
+supabase functions serve        # the suite calls four of them, not just one
+node test/e2e-accounts.mjs      # 48 checks; needs the local stack up
 ```
+
+On Docker Desktop for macOS the CLI may hang silently with no output and no
+containers: it looks for `/var/run/docker.sock`, which Desktop does not create
+unless "Allow the default Docker socket to be used" is on. The socket is at
+`~/.docker/run/docker.sock` (the `desktop-linux` context), so
+`export DOCKER_HOST="unix://$HOME/.docker/run/docker.sock"` is the fix. Note
+`supabase start` prints nothing at all when it is not attached to a TTY, so
+silence is not a failure signal — watch `docker ps` instead.
 
 Supabase (local, Docker required):
 
@@ -141,8 +151,12 @@ js/
     ui/             overlay shell, a11y announcer, procedural backgrounds
     audio/          synth
     account/        session.js — localStorage display cache, NO network
+    achievements/   badgeShelf.js (pure DOM; imports the catalogue from
+                    supabase/functions/_shared/badges.js), boardMarks.js
+                    (the one place that module meets net/)
     net/            client.js (the one Supabase client), leaderboard.js,
-                    auth.js — the ONLY modules that talk to the network
+                    auth.js, badges.js — the ONLY modules that talk to the
+                    network
     util/           dom, emitter, rng
   games/<name>/     one directory per game, mirroring the shared layout
                     tetris/, snake/ and breakout/ exist; use snake/ or
@@ -151,7 +165,10 @@ js/
 sw.js               ONE service worker, scope '/', covering the whole site
 supabase/
   functions/        Edge Functions. submit-score, before-user-created (an auth
-                    hook), report-name, delete-account, and _shared/
+                    hook), report-name, delete-account, and _shared/ —
+                    cors.ts, gamerTag.js and badges.js. The two .js files are
+                    plain, import-free and loaded unchanged by Deno, Node and
+                    the browser.
   migrations/       SQL
   templates/        LOCAL mirrors of the two auth emails, so `supabase start`
                     sends the 6-digit code production sends. Production's live
@@ -539,6 +556,67 @@ column-level grants are a real boundary (`select('*')` → 42501 on both tables,
 refused); and deleting an account leaves its scores in place with
 `is_verified` flipped to false.
 
+## Achievement badges
+
+Account holders earn badges. `migrations/20260815000000_achievements.sql` adds
+`player_stats`, `player_days` and `player_achievements`, plus
+`public.record_play(user_id, game_id, score)`. Anonymous runs earn nothing —
+`AAA` is shared by strangers, so there is no honest key to award against.
+
+**Stats are the source of truth; a badge is a threshold over them.** The unlock
+record is binary plus a timestamp and stores no progress, which is what makes a
+badge added later award itself from counters that have been accumulating all
+along. The catalogue and the rule live in
+`supabase/functions/_shared/badges.js` — plain `.js`, zero imports, the
+`gamerTag.js` pattern, so Deno, Node, the browser and the tests load the same
+file. Unlike the blocklist, none of it is secret: the client imports it to
+render the shelf.
+
+Four things that are load-bearing:
+
+- **The counters cannot come from `leaderboard`.** It is a top-100-per-game
+  window behind a destructive trigger, so "50 games played" is not derivable
+  from it. Nothing prunes the new tables; do not teach `prune_leaderboard`
+  about them.
+- **`player_stats` and `player_days` are service-role only** — RLS on, no
+  policies, no grants — because they ARE the cross-game history that
+  `leaderboard.user_id` is withheld to prevent assembling. `player_achievements`
+  is publicly readable, which leaks nothing new: `profiles.id` and
+  `profiles.gamer_tag` are already both granted, so tag → id is already public.
+- **Distinct days are counted from `player_days`, one row per player per UTC
+  date.** A per-game `distinct_days` counter summed across games double-counts a
+  day on which someone played two games. The date is UTC and written down as
+  such; timezone-naive streak aggregation is the classic bug here.
+- **`top-ten` / `rank-one` use the RAW rank**, not the rank the board displays.
+  `capPerPlayer(3)` means a player can hold raw rank 4 and appear second.
+
+`submitScore` now resolves to `{ row, unlocked }`. It still accepts the old bare
+array, so the client is safe to ship ahead of the function deploy. The award
+path is wrapped: a badge failure logs and returns `unlocked: []`, and never
+fails the submission — the score is committed by then and saying otherwise
+would be false.
+
+Verified end to end against the local stack 2026-08-15: the migration applies
+from scratch; `record_play` accumulates plays across games, never lets
+`best_score` go backwards, and reports **one** distinct day for four plays in a
+day; `on conflict do nothing ... returning` returns only genuinely-new keys;
+`player_stats` and `player_days` answer 42501 even to their owner's token;
+badges cascade away on account deletion while the scores survive unverified.
+
+**One thing that does NOT generalise from the accounts migration:** `select=*`
+on `player_achievements` SUCCEEDS. `*` fails on `profiles` and `leaderboard`
+because their grants WITHHOLD a column, not because the grants are
+column-level. This table withholds nothing, so there is no 42501 to assert.
+
+**The per-game score thresholds are measured, not derived, and the derivation
+is in the file.** Read from the live board 2026-08-15 and chosen so bronze and
+silver sit in the 30–60% band and gold in 5–15%. The sample is the retained top
+100, so it is survivorship-biased and counts rows rather than players — both
+noted in-code. Revisit from `player_stats` once there is enough history to ask
+the question per player. This is NOT a licence to invent the next number by
+hand; Tetris's anti-cheat ceiling below is still the example of what that
+produces.
+
 ## Anti-cheat
 
 The client is untrusted. Obfuscation and WASM are not security. Clients never write
@@ -619,7 +697,12 @@ so the Edge Function is the real gate.
   `element.style.width = '77px'` applied — CSP does not restrict CSSOM. Use
   classes; reach for `element.style.x =` only for genuinely dynamic values, as
   the renderers do for canvas sizing.
-  `js/games/tetris/ui/scoresView.js` and `js/games/tetris/pages/leaderboard.js`
-  still style themselves inline and are rendering unstyled in production.
+  This entry used to end by naming `js/games/tetris/ui/scoresView.js` and
+  `js/games/tetris/pages/leaderboard.js` as still styling themselves inline and
+  rendering unstyled in production. **That was fixed in a1722f8 ("Style
+  Tetris's score screens with classes, not blocked inline styles") and this
+  line was not updated with it.** Re-checked 2026-08-15: neither file contains
+  a style attribute, and `attrs: { style: … }` appears nowhere under `js/`.
+  The rule above stands; there is no longer a known violation of it.
 - Lazy-load sprites and audio behind the menu; ship only the start-screen critical
   path first.

@@ -302,6 +302,17 @@
 .gameover__status--ok    { color: var(--success); }
 .gameover__status--error { color: var(--danger); }
 
+/* Badges unlocked by the run just finished. Only present when there are some, so
+   it needs no min-height and no empty state. Gold rather than the accent because
+   the accent is the score, and this line must not be mistaken for one.
+   The end-of-run summary is the right place for this: a mid-game toast
+   interrupts the thing the player is actually doing. */
+.gameover__badges {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--tier-gold);
+}
+
 .initials {
   display: flex;
   align-items: center;

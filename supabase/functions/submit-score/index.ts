@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 import { corsHeadersFor } from "../_shared/cors.ts"
+import { evaluate } from "../_shared/badges.js"
 
 /*
  * CORS comes from _shared/cors.ts rather than the object that used to sit here.
@@ -157,6 +158,122 @@ const INVALID_INITIALS =
 function reject(reason: string, payload: unknown, extra: Record<string, unknown> = {}) {
   console.error('score rejected', { reason, payload, ...extra })
   return new Error(reason)
+}
+
+// deno-lint-ignore no-explicit-any
+type Db = any
+
+/**
+ * This row's RAW rank on the global board, 1-based, or null if it cannot be
+ * established.
+ *
+ * RAW, not the rank the player SEES. fetchTopScores caps each name at three rows
+ * (js/shared/net/topScores.js), so someone can hold raw rank 4 and appear second
+ * on screen. The Top Ten badge is a claim about the table, so it is measured
+ * against the table.
+ *
+ * The predicate is "rows that beat this one" under exactly the tie-break
+ * public.prune_leaderboard uses — score desc, created_at asc. Anything else and
+ * two identical scores would each be told they were ahead of the other. The row
+ * just inserted satisfies neither branch (its score is not greater than itself,
+ * its timestamp is not earlier than itself), so rank is beaten + 1.
+ *
+ * created_at is double-quoted because an ISO timestamp is a bare value inside
+ * PostgREST's `or=` grammar, where commas and parentheses are structural.
+ */
+async function rawRank(
+  supabase: Db,
+  gameId: string,
+  score: number,
+  createdAt: string
+): Promise<number | null> {
+  const { count, error } = await supabase
+    .from('leaderboard')
+    .select('id', { count: 'exact', head: true })
+    .eq('game_id', gameId)
+    .or(`score.gt.${score},and(score.eq.${score},created_at.lt."${createdAt}")`)
+
+  if (error) throw error
+  return typeof count === 'number' ? count + 1 : null
+}
+
+/**
+ * Counts the play, works out which badges the player now qualifies for, and
+ * stores the ones they did not already hold.
+ *
+ * ANONYMOUS RUNS EARN NOTHING, and this is not an oversight. The only grouping
+ * key an anonymous row has is a typed-in display name, and `AAA` is both a
+ * common choice and what scoresStore's toInitials() pads to when nothing is
+ * typed — so it is shared by people with no connection to each other. Awarding
+ * against it would hand one player's badges to a stranger. The caller skips this
+ * function entirely when userId is null.
+ *
+ * @returns the keys unlocked BY THIS SUBMISSION, in catalogue order.
+ */
+async function awardBadges(
+  supabase: Db,
+  userId: string,
+  gameId: string,
+  score: number,
+  createdAt: string
+): Promise<string[]> {
+  // One round trip: the counters are updated and the resulting totals — plus the
+  // keys already held — come back with them. See public.record_play in
+  // migrations/20260815000000_achievements.sql.
+  const { data, error } = await supabase.rpc('record_play', {
+    p_user_id: userId,
+    p_game_id: gameId,
+    p_score: score,
+  })
+
+  if (error) throw error
+
+  // `returns table` arrives as an array of one row.
+  const stats = Array.isArray(data) ? data[0] : data
+  if (!stats) throw new Error('record_play returned no row')
+
+  const held: string[] = Array.isArray(stats.earned_keys) ? stats.earned_keys : []
+
+  // The rank query is the only optional round trip in here, so it is skipped
+  // once both badges that depend on it are already held — which is the steady
+  // state for anyone who has ever topped a board.
+  let rank: number | null = null
+  if (!(held.includes('top-ten') && held.includes('rank-one'))) {
+    rank = await rawRank(supabase, gameId, score, createdAt)
+  }
+
+  const qualifies: string[] = evaluate(
+    {
+      plays: stats.plays_total,
+      games: stats.games_played,
+      // `game_best`, not `best_score`: the SQL function names it that way on
+      // purpose, so no OUT parameter shadows a column of player_stats.
+      bestScore: stats.game_best,
+      days: stats.distinct_days,
+    },
+    { gameId, score, rank }
+  )
+
+  const fresh = qualifies.filter((key) => !held.includes(key))
+  if (fresh.length === 0) return []
+
+  // ON CONFLICT DO NOTHING, which is what `ignoreDuplicates` compiles to. `held`
+  // above is a read and this is a write, and they are not one transaction from
+  // here — so two tabs finishing a run at the same instant can both compute the
+  // same fresh key. The primary key on (user_id, achievement_key) makes the
+  // second insert a no-op instead of an error, and the only visible consequence
+  // is that both game-over cards say "badge unlocked". That is the right way
+  // round: a duplicate announcement is cosmetic, a failed submission is not.
+  const { error: insertError } = await supabase
+    .from('player_achievements')
+    .upsert(
+      fresh.map((key) => ({ user_id: userId, achievement_key: key })),
+      { onConflict: 'user_id,achievement_key', ignoreDuplicates: true }
+    )
+
+  if (insertError) throw insertError
+
+  return fresh
 }
 
 serve(async (req) => {
@@ -419,8 +536,43 @@ serve(async (req) => {
       throw error
     }
 
+    const row = Array.isArray(data) ? data[0] ?? null : data ?? null
+
+    // -------------------------------------------------------------------
+    // 5. BADGES. Everything from here on is best-effort.
+    //
+    // The score is the product; a badge is garnish. A failure in the award
+    // path — a missing migration, a renamed column, a timeout — must not turn
+    // a successful submission into "the global leaderboard did not accept it",
+    // because the row is already committed and telling the player otherwise is
+    // simply false. It is logged loudly and the response says `unlocked: []`.
+    //
+    // Anonymous runs skip this entirely; see awardBadges.
+    // -------------------------------------------------------------------
+    let unlocked: string[] = []
+
+    if (userId && row?.created_at) {
+      try {
+        unlocked = await awardBadges(supabase, userId, game_id as string, numericScore, row.created_at)
+      } catch (badgeError) {
+        console.error('badge award failed; the score itself was accepted', {
+          user_id: userId,
+          game_id,
+          score: numericScore,
+          error: badgeError instanceof Error ? badgeError.message : String(badgeError),
+        })
+      }
+    }
+
+    // RESPONSE SHAPE CHANGED, from the bare insert array to { row, unlocked }.
+    //
+    // Safe to do in one step, unlike a schema change: all three call sites
+    // (js/games/{tetris,snake,breakout}/ui/scoresView.js) awaited submitScore
+    // and discarded its return value, so there was no client half to sequence.
+    // `row` keeps the old payload intact under a name, rather than being
+    // flattened in, so a future field cannot collide with a column.
     return new Response(
-      JSON.stringify(data),
+      JSON.stringify({ row, unlocked }),
       { headers: { ...corsHeadersFor(req), "Content-Type": "application/json" }, status: 200 }
     )
   } catch (error) {

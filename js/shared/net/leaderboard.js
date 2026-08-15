@@ -77,6 +77,20 @@ export async function fetchTopScores(gameId) {
  * Submits through the Edge Function, which holds the service-role key and is
  * the only thing allowed to write. Re-throws so the caller can show a failure
  * rather than reporting a silent success.
+ *
+ * @returns {Promise<{row: object|null, unlocked: string[]}>}
+ *   `row` is the stored leaderboard row; `unlocked` is the achievement keys this
+ *   submission earned, empty for an anonymous player or a player who earned
+ *   nothing new. Resolve the keys through
+ *   supabase/functions/_shared/badges.js — the wire carries keys, never titles,
+ *   so a copy change never needs a function deploy.
+ *
+ * THE OLD SHAPE IS STILL ACCEPTED, on purpose. Before badges this function
+ * returned the bare insert array. Normalising here rather than assuming the new
+ * shape is what makes the client safe to ship AHEAD of the function deploy: a
+ * player talking to the old one gets `unlocked: []` and a working game-over
+ * card instead of a TypeError on the success path. It is the same reasoning as
+ * the game_id column's DEFAULT, applied to the response instead of the schema.
  */
 export async function submitScore(gameId, playerName, score, sessionDurationSeconds) {
   requireGameId(gameId, 'submitScore');
@@ -95,5 +109,12 @@ export async function submitScore(gameId, playerName, score, sessionDurationSeco
     throw error;
   }
 
-  return data;
+  if (Array.isArray(data)) {
+    return { row: data[0] ?? null, unlocked: [] };
+  }
+
+  return {
+    row: data?.row ?? null,
+    unlocked: Array.isArray(data?.unlocked) ? data.unlocked : []
+  };
 }
