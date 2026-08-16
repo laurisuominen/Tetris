@@ -202,8 +202,35 @@ Invariants to check before opening a PR:
 ## Deployment
 
 GitHub Pages, **legacy branch deploy** from `main` at `/`, on the custom domain in
-`CNAME`. There is no build workflow: what is on `main` is what is served, including
-`Tetris_v1/` and `test/`.
+`CNAME`. There is no build *workflow* of ours, and near enough everything on `main`
+is served, including `Tetris_v1/` and `test/`.
+
+**"What is on `main` is what is served" was the mental model here, and it was wrong
+in one specific way that took the site down on 2026-08-16.** Branch-deploy Pages runs
+the files through **Jekyll**, and per GitHub's own docs Jekyll does not build files or
+folders that start with `_`, `.` or `#`. So `supabase/functions/_shared/` — the
+directory CLAUDE.md deliberately points the BROWSER at, because `gamerTag.js` and
+`badges.js` are import-free files loaded unchanged by Deno, Node and the browser —
+**404'd in production while every sibling path served 200.** Measured: 
+`/supabase/functions/submit-score/index.ts` → 200, `/supabase/functions/_shared/badges.js`
+→ 404.
+
+That is a *silent, path-shaped* failure. It cannot be caught by `python3 -m
+http.server`, which serves underscore directories happily, so the local check that
+CLAUDE.md's definition-of-done step 3 asks for passes while production is broken. An
+ES module 404 takes down the whole import graph, not one feature: `js/games/*/main.js`
+imports `scoresView.js` → `badgeShelf.js` → the 404, so all three games, all three
+leaderboard pages and the account page stopped booting at once while the hub, which
+imports none of it, looked fine.
+
+**The fix is the empty `.nojekyll` at the repo root. Do not delete it.** With it,
+Pages serves the tree as-is and underscore paths resolve.
+
+- Adding a file under a `_`-prefixed directory that the browser must fetch is safe
+  *only* while `.nojekyll` exists. It is one empty file standing between the site and
+  a repeat of this outage.
+- After any change that adds a browser-fetched path, check it against the **deployed**
+  origin, not just localhost. Local static serving and Pages do not agree.
 
 A previous `.github/workflows/deploy.yml` assembled a clean `_site` and injected the
 Git SHA into the service-worker cache name. It ran green on every push and was never
