@@ -95,6 +95,39 @@ const GAMES: Record<string, { maxPointsPerSecond: number; maxScore: number }> = 
   // value with no travel between them, which is impossible. It is a true
   // ceiling, not an expected value.
   breakout: { maxPointsPerSecond: 7_000, maxScore: 810_000 },
+
+  // Derived from js/games/hivebreak/core/constants.js:
+  //
+  //   FIRE_COOLDOWN_MS = 100          -> at most 10 shots/sec
+  //   a dual fighter fires 2 barrels  -> at most 20 bullets/sec
+  //   MAX_ENEMY_POINTS = 400 (a diving boss)
+  //
+  //   points/sec upper bound = 20 bullets/s x 400 pts       = 8,000
+  //   plus a stage bonus and a rescue bonus landing in the
+  //   same second                                           = 2,000
+  //                                                          -------
+  //                                                           10,000
+  //
+  //   One wave is 4 bosses + 16 butterflies + 16 bees. Killed at the DIVING
+  //   price throughout:
+  //     4x400 + 16x160 + 16x100                             = 5,760
+  //   plus STAGE_CLEAR_BONUS 1,000 and RESCUE_BONUS 1,000    = 7,760/stage
+  //   MAX_STAGE = 99 -> 7,760 x 99                           = 768,240
+  //                                                          -> cap 800,000
+  //
+  // Both bounds are deliberately unreachable. The points/sec figure assumes
+  // every bullet finishes a boss with no travel time between shots, and the
+  // total assumes every one of 3,564 enemies is shot mid-dive and a captive is
+  // rescued on all 99 stages — which cannot happen, because a capture costs a
+  // life and there are only three. They are ceilings, not expected values.
+  //
+  // LOAD-BEARING CONSTANTS, exactly as MAX_LEVEL and SCORE_MULTIPLIER_CAP are
+  // for Breakout: MAX_STAGE, FIRE_COOLDOWN_MS, MAX_ENEMY_POINTS and the
+  // formation shape (FORMATION_COLS/ROW_KINDS/BOSS_COLUMNS). Raise any of them
+  // and this cap is silently too low, which rejects honest scores.
+  // test/hivebreak.test.js asserts no enemy is worth more than
+  // MAX_ENEMY_POINTS, which is the half of that a unit test can reach.
+  hivebreak: { maxPointsPerSecond: 10_000, maxScore: 800_000 },
 }
 
 // A session longer than a day is not a session; it is a tab left open, or a

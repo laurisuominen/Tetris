@@ -38,6 +38,15 @@ export const GAMES = Object.freeze([
     blurb: 'One ball, one paddle, and a wall that will not clear itself. Endless levels, and the paddle follows your mouse.',
     mark: 'BR',
     accent: 'var(--piece-l)'
+  },
+  {
+    id: 'hivebreak',
+    title: 'Hivebreak',
+    path: 'games/hivebreak/',
+    status: 'playable',
+    blurb: 'A hive that flies in, forms up, then comes at you a few at a time. Shoot the ones that are moving — they are worth double.',
+    mark: 'HV',
+    accent: 'var(--piece-i)'
   }
 ]);
 

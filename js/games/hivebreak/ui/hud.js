@@ -1,0 +1,98 @@
+/**
+ * Score, stage, lives and the badge.
+ *
+ * The score counts up rather than snapping. Purely cosmetic: it runs on wall
+ * time and reads state, never writes it.
+ *
+ * Lives are pips rather than a number, for the reason Breakout's are: three of
+ * something is faster to count than a digit is to read, and lives are the one
+ * stat a player checks with something already diving at them.
+ */
+
+import { qs, setText, setHidden, el } from '../../../shared/util/dom.js';
+import { START_LIVES } from '../core/constants.js';
+
+const COUNT_UP_MS = 220;
+
+export function createHud() {
+  const scoreEl = qs('#stat-score');
+  const stageEl = qs('#stat-stage');
+  const livesEl = qs('#stat-lives');
+  const badgeEl = qs('#badge');
+
+  let displayedScore = 0;
+  let displayedLives = -1;
+  let animation = null;
+  let badgeTimer = null;
+
+  const reducedMotion = () =>
+    document.documentElement.dataset.motion === 'off'
+    || matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function animateScore(to) {
+    if (animation) cancelAnimationFrame(animation);
+
+    if (reducedMotion() || Math.abs(to - displayedScore) < 2) {
+      displayedScore = to;
+      setText(scoreEl, to.toLocaleString());
+      return;
+    }
+
+    const from = displayedScore;
+    const start = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min((now - start) / COUNT_UP_MS, 1);
+      const eased = 1 - (1 - progress) ** 3;
+      displayedScore = Math.round(from + (to - from) * eased);
+      setText(scoreEl, displayedScore.toLocaleString());
+      if (progress < 1) animation = requestAnimationFrame(tick);
+    };
+    animation = requestAnimationFrame(tick);
+  }
+
+  /**
+   * Redraws the pips only when the count changes. update() runs every frame,
+   * and rebuilding three elements sixty times a second to say the same thing
+   * is the sort of thing that quietly costs a frame.
+   */
+  function renderLives(lives) {
+    if (lives === displayedLives) return;
+    displayedLives = lives;
+
+    livesEl.replaceChildren();
+    for (let i = 0; i < START_LIVES; i += 1) {
+      livesEl.appendChild(el('span', {
+        className: i < lives ? 'lives__pip' : 'lives__pip lives__pip--spent'
+      }));
+    }
+    livesEl.setAttribute('aria-label', `${lives} ${lives === 1 ? 'ship' : 'ships'} left`);
+  }
+
+  return {
+    update(state) {
+      if (state.score !== displayedScore) animateScore(state.score);
+      setText(stageEl, state.stage);
+      renderLives(state.lives);
+    },
+
+    /** Brief label — a stage, a rescue, or the win. */
+    showBadge(label) {
+      if (!label) return;
+      clearTimeout(badgeTimer);
+      setText(badgeEl, label);
+      setHidden(badgeEl, false);
+      badgeTimer = setTimeout(() => setHidden(badgeEl, true), 1600);
+    },
+
+    reset() {
+      if (animation) cancelAnimationFrame(animation);
+      displayedScore = 0;
+      setText(scoreEl, '0');
+      setText(stageEl, '1');
+      displayedLives = -1;
+      renderLives(START_LIVES);
+      setHidden(badgeEl, true);
+    }
+  };
+}

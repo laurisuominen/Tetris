@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#111318">
+<meta name="description" content="About Hivebreak — controls, rules and how it was built.">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+<title>About — Hivebreak</title>
+<link rel="stylesheet" href="../../../css/tokens.css">
+<link rel="stylesheet" href="../../../css/pages.css">
+</head>
+<body>
+<main class="page">
+
+  <nav class="page__nav">
+    <a class="link link--home" href="../">Back to game</a>
+    <a class="link" href="../leaderboard/">Leaderboard</a>
+    <a class="link" href="../../../">Arcade</a>
+  </nav>
+
+  <h1 class="page__title">About</h1>
+  <p class="page__lead">
+    Hivebreak, built from scratch in vanilla JavaScript — no frameworks, no build
+    step, no dependencies. It installs to your home screen and plays fully
+    offline.
+  </p>
+
+  <h2>How to play</h2>
+  <p>
+    A hive of thirty-six flies in, settles into formation, and then starts coming
+    at you a few at a time. Clear every one of them to finish the stage. You have
+    three ships.
+  </p>
+
+  <h2>Shoot the ones that are moving</h2>
+  <p>
+    An enemy sitting in formation is worth half what the same enemy is worth
+    while it is diving at you. That is the whole game: picking off the formation
+    is safe and cheap, and waiting for something to commit is dangerous and pays
+    double.
+  </p>
+  <ul>
+    <li>Bee — 50 in formation, 100 diving</li>
+    <li>Butterfly — 80 in formation, 160 diving</li>
+    <li>Boss — 150 in formation, 400 diving, and it takes two hits</li>
+  </ul>
+
+  <h2>The tractor beam</h2>
+  <p>
+    Every so often a boss drops to the middle of the field and opens a cone of
+    light. If your ship is standing in it when it closes, the boss takes your
+    ship and you lose a life. The beam is a cone rather than a column, so you can
+    outrun it sideways — but only if you start moving before it opens.
+  </p>
+  <p>
+    A captured ship rides under its captor and comes back into formation with it.
+    You can get it back, and how you do it is the one rule worth learning:
+  </p>
+  <ul>
+    <li>
+      Shoot the captor <strong>while it is diving</strong> and your ship is set
+      free. It docks alongside you as a dual fighter — two ships, two guns, worth
+      a 1,000-point bonus.
+    </li>
+    <li>
+      Shoot the captor <strong>while it sits in formation</strong> and your
+      captured ship is destroyed along with it. Nothing comes back.
+    </li>
+  </ul>
+  <p>
+    A dual fighter is not strictly better. It fires twice as much and it is twice
+    as wide, which means twice as easy to hit.
+  </p>
+
+  <h2>Keyboard controls</h2>
+  <ul>
+    <li><strong>← →</strong> or <strong>A D</strong> — fly</li>
+    <li><strong>Space</strong> — fire (hold it)</li>
+    <li><strong>P</strong> or <strong>Esc</strong> — pause</li>
+    <li><strong>Enter</strong> — start, or play again</li>
+  </ul>
+
+  <h2>Mouse and touch</h2>
+  <p>
+    Drag anywhere on the playfield to fly. The drag is relative, not absolute:
+    the ship moves by however far your finger moves, from wherever you started.
+    That is deliberate — the field is portrait, so a thumb placed on the ship
+    itself would cover the part of the screen you most need to watch.
+  </p>
+  <p>
+    Auto-fire is on by default. It is never faster than holding the trigger,
+    because the gun has a fixed cooldown either way; it is there so steering and
+    shooting do not need the same thumb. On-screen arrows and a Fire button are
+    available for anyone who turns dragging or auto-fire off.
+  </p>
+
+  <h2>Settings</h2>
+  <p>
+    Difficulty changes how often the hive attacks and how much it shoots — never
+    how fast your ship moves. It applies to your next game rather than the one in
+    progress, because it changes what a score means.
+  </p>
+
+  <h2>Notes</h2>
+  <p>
+    The sprites are not image files. Every ship in the game is written out as
+    text in the source, one character per pixel, and painted into a canvas when
+    the page loads. That keeps the whole game free of binary assets, which means
+    there is no image that can fail to download and take the game down with it.
+  </p>
+  <p>
+    Enemies fly along curves rather than straight lines. Each path is a spline
+    that gets sampled once when the page loads and then followed by distance, so
+    everything moves at a constant speed through the tight parts of a turn
+    instead of stalling in them.
+  </p>
+  <p>
+    Scores are yours: local ones stay in this browser, and the global board only
+    ever sees a name and a number.
+  </p>
+
+  <p class="page__foot">
+    <a class="pagebtn" href="../">Play</a>
+  </p>
+
+</main>
+</body>
+</html>
