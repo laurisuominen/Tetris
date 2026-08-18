@@ -59,6 +59,29 @@
   --paddle:       #e2e8f0;
   --ball:         #f8fafc;
 
+  /* Hivebreak — the sprite palette. Every colour a sprite pixel can be is
+     named here, because render/sprites.js bakes the art at boot and a colour it
+     cannot resolve becomes an invisible enemy rather than a wrong-coloured one.
+
+     Reusing the tetromino hues again, for the reason the Breakout note gives.
+     The three enemy kinds are separated by HUE, never by brightness alone —
+     the formation is read at a glance while something is diving at you, and a
+     value-only difference does not survive that. The hull is near-white for
+     the same reason the ball is: it is the thing the eye has to keep. */
+  --hb-hull:      #e2e8f0;  /* player ship body                */
+  --hb-hull-lit:  #f8fafc;  /* its highlight                   */
+  --hb-thrust:    #fb923c;  /* engine flare                    */
+  --hb-shot:      #f8fafc;  /* the player's bullet             */
+  --hb-bee:       #facc15;  /* bee wings                       */
+  --hb-bee-body:  #22d3ee;  /* bee body                        */
+  --hb-fly:       #f43f5e;  /* butterfly wings                 */
+  --hb-fly-body:  #e2e8f0;  /* butterfly body                  */
+  --hb-boss:      #4ade80;  /* boss, undamaged                 */
+  --hb-boss-hit:  #a855f7;  /* boss after surviving one hit    */
+  --hb-eye:       #3b82f6;  /* the dot every enemy has         */
+  --hb-beam:      #22d3ee;  /* tractor beam cone               */
+  --hb-enemy-shot: #f43f5e; /* enemy bullet                    */
+
   /* Accents */
   --accent:        oklch(0.72 0.15 250);
   --accent-strong: oklch(0.80 0.17 250);

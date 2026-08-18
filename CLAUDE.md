@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Browser-based casual arcade (Tetris, Snake and Breakout) on GitHub
+Browser-based casual arcade (Tetris, Snake, Breakout and Hivebreak) on GitHub
 Pages, with a Supabase backend for the global leaderboard and player accounts.
 These are project standards — follow them on every task.
 
@@ -105,12 +105,33 @@ boundary, or in a real browser window.
   is the same defect `fitPlayfield` had inside `shared/render/geometry.js`, and
   the fix is the house pattern: take the game-specific value as an argument and
   throw rather than default. A third game needs no further `js/shared/` edits.
-  **That prediction has now been tested and it held: Breakout was built without
-  touching a single file under `js/shared/`,** including its paddle axis, which
-  `createKeyboard`'s existing `heldActions`/`suppressInitial`/`axis` options
-  already expressed. What did not generalise — pointer-driven paddle control,
-  held-axis buttons — went into `js/games/breakout/input/`, following the
-  precedent Snake set with its four-way swipe.
+  **That prediction has now been tested TWICE and held both times.** Breakout was
+  built without touching a single file under `js/shared/`, including its paddle
+  axis, which `createKeyboard`'s existing
+  `heldActions`/`suppressInitial`/`axis` options already expressed. **Hivebreak
+  — a sprite-based formation shooter, the least Tetris-shaped game here — also
+  needed zero shared edits.** Three things that looked like they would force one
+  did not:
+  - A HELD TRIGGER. `createKeyboard` already returned `isHeld(action)`, so the
+    trigger is one more entry in `heldActions` beside the steering axis.
+  - CONTINUOUS, NON-GRID MOVEMENT at 14x18 tiles. `fitGrid` takes its column and
+    row counts as arguments and snaps the cell to whole device pixels; a game
+    whose ships sit at fractional tile coordinates uses it unchanged, because the
+    grid is a coordinate system rather than a constraint on movement.
+  - SPRITES, the first `drawImage` in the repo. Baking pixel data into a canvas
+    is a `render/` concern and stayed inside `js/games/hivebreak/render/`.
+
+  What did not generalise went into the game's own `input/` directory each time,
+  following the precedent Snake set with its four-way swipe: pointer-driven
+  paddle control and held-axis buttons in `js/games/breakout/input/`, and
+  relative drag steering plus a held fire button in
+  `js/games/hivebreak/input/`. Note Hivebreak's pointer is deliberately NOT
+  Breakout's — Breakout maps the paddle to the pointer's absolute x, which on a
+  portrait field would put the player's thumb over the formation they are
+  aiming at, so Hivebreak accumulates a relative delta instead. Two games
+  needing the opposite behaviour from the same concept is exactly why it is not
+  shared.
+
   If you find yourself wanting another exception, the bar is "shared code cannot
   express this at all", not "this would be convenient".
   **Accounts added `js/shared/net/{client,auth}.js` and
@@ -159,9 +180,12 @@ js/
                     network
     util/           dom, emitter, rng
   games/<name>/     one directory per game, mirroring the shared layout
-                    tetris/, snake/ and breakout/ exist; use snake/ or
-                    breakout/ as the reference for a new game — they are the
-                    two built against these rules
+                    tetris/, snake/, breakout/ and hivebreak/ exist; use
+                    breakout/ or hivebreak/ as the reference for a new game.
+                    hivebreak/ additionally shows the sprite path: render/
+                    spriteData.js is pixel art written as text, baked once into
+                    a canvas by render/sprites.js, so the repo still ships zero
+                    binary assets
 sw.js               ONE service worker, scope '/', covering the whole site
 supabase/
   functions/        Edge Functions. submit-score, before-user-created (an auth
@@ -356,8 +380,8 @@ Current state: a single non-partitioned `leaderboard` table **with a `game_id`
 column** (`text NOT NULL DEFAULT 'tetris'`, added by
 `migrations/20260727000000_add_game_id.sql`), indexed
 `(game_id, score DESC) INCLUDE (player_name, created_at)`. One `submit-score`
-Edge Function, which validates `game_id` against an allowlist. Three games write
-to it: `tetris`, `snake` and `breakout`.
+Edge Function, which validates `game_id` against an allowlist. Four games write
+to it: `tetris`, `snake`, `breakout` and `hivebreak`.
 
 `migrations/20260731000000_accounts.sql` added `profiles`, `name_reports`, and
 two columns on `leaderboard`: a nullable `user_id` and `is_verified`, a **stored
@@ -635,6 +659,25 @@ on `player_achievements` SUCCEEDS. `*` fails on `profiles` and `leaderboard`
 because their grants WITHHOLD a column, not because the grants are
 column-level. This table withholds nothing, so there is no 42501 to assert.
 
+**Hivebreak is deliberately NOT in `SCORE_TIERS`, and that is the design
+working rather than an omission.** It ships with a leaderboard and earns
+`first-score`, `plays-*`, `days-*`, `top-ten` and `rank-one` from its first
+submission, but has no score ladder of its own. Two consequences, both wanted:
+
+- `all-three` / Arcade Tourist reads `Object.keys(SCORE_TIERS)` directly, so
+  leaving Hivebreak out means nobody's in-progress badge silently got harder
+  the day a fourth game shipped.
+- `record_play` is keyed by `(user_id, game_id)` and knows nothing about the
+  catalogue, so `player_stats` has been accumulating Hivebreak plays and bests
+  since launch. Adding its three tiers later awards them retroactively.
+
+That is precisely the case "a badge added later awards itself from counters
+that have been accumulating all along" was built for. The alternative was
+inventing three thresholds for a game with no players, which the paragraph
+below explicitly forbids. Set them from `player_stats` once there is history.
+`test/badges.test.js` already covers the shape of this — see *"awards no ladder
+for a game it does not know"*.
+
 **The per-game score thresholds are measured, not derived, and the derivation
 is in the file.** Read from the live board 2026-08-15 and chosen so bronze and
 silver sit in the 30–60% band and gold in 5–15%. The sample is the retained top
@@ -661,6 +704,7 @@ Ceilings are now per-game, in a `GAMES` map in the function:
 | `snake` | 900 | 12,000 | Yes — grid size × move rate × apple value, shown in-code |
 | `breakout` | 7,000 | 810,000 | Yes — max ball speed × brick height × capped multiplier, shown in-code |
 | `tetris` | 5000 | 10,000,000 | **No.** Inherited from the single-game version. Still owed a derivation. |
+| `hivebreak` | 10,000 | 800,000 | Yes — fire cooldown × barrels × top enemy value, and wave value × `MAX_STAGE`, shown in-code |
 
 Do not copy another game's numbers, and do not treat Tetris's as a precedent —
 it is the thing that needs fixing, not the pattern to follow.
@@ -669,6 +713,14 @@ Breakout's cap is only finite because two constants make it so: `MAX_LEVEL`
 (99) and `SCORE_MULTIPLIER_CAP` (20), both in
 `js/games/breakout/core/constants.js`. They exist for the derivation, not for
 game design. Raise either and the Edge Function's `maxScore` is wrong.
+
+Hivebreak has the same shape and more of them: `MAX_STAGE`, `FIRE_COOLDOWN_MS`,
+`MAX_ENEMY_POINTS` and the formation shape itself
+(`FORMATION_COLS` / `ROW_KINDS` / `BOSS_COLUMNS`) all feed its cap, and all are
+flagged as load-bearing in `js/games/hivebreak/core/constants.js`. Adding one
+row to the formation raises the maximum wave value and silently makes the
+deployed ceiling too low — which rejects honest scores rather than failing
+loudly.
 
 Planned flow:
 1. Client requests a signed session token at game start (server-stamped start time,

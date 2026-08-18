@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en" data-motion="auto">
+<head>
+<meta charset="utf-8">
+<!-- user-scalable=no / maximum-scale=1 stop accidental pinch-zoom and the
+     double-tap zoom gesture from firing mid-game. This matters more here than
+     in the other games: the primary touch control is a DRAG on the playfield,
+     which is exactly the gesture a pinch starts as. This is a deliberate
+     game-UX trade against WCAG 1.4.4 (zoom to 200%); iOS Safari ignores it for
+     accessibility anyway. See README "Accessibility notes". -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#111318">
+<meta name="description" content="Hivebreak — a formation shooter built with vanilla JavaScript. Dive attacks, a tractor beam that steals your ship, and a dual fighter if you win it back.">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self' https://obkndxwkpodmcqumocfi.supabase.co http://127.0.0.1:54321 http://localhost:54321; img-src 'self' data:; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; base-uri 'none'; form-action 'none'">
+
+<!-- PWA -->
+<link rel="manifest" href="../../manifest.json">
+<link rel="apple-touch-icon" href="../../icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hivebreak">
+<meta name="mobile-web-app-capable" content="yes">
+
+<title>Hivebreak</title>
+<link rel="stylesheet" href="../../css/tokens.css">
+<link rel="stylesheet" href="../../css/base.css">
+<link rel="stylesheet" href="../../css/components.css">
+<link rel="stylesheet" href="../../css/backgrounds.css">
+<link rel="stylesheet" href="../../css/animations.css">
+<!-- Last, and in place of layout.css: source order is what lets the control
+     cluster rules override the shared defaults. -->
+<link rel="stylesheet" href="../../css/hivebreak.css">
+<script src="../../js/shared/file-guard.js"></script>
+</head>
+<body>
+
+<canvas id="bg-a" class="backdrop" aria-hidden="true"></canvas>
+<canvas id="bg-b" class="backdrop" aria-hidden="true"></canvas>
+<div class="backdrop-scrim" aria-hidden="true"></div>
+
+<main class="app" id="app">
+
+  <section class="field" aria-label="Playfield">
+    <div class="field__slab">
+      <!-- ONE canvas, unlike Breakout's two. Breakout splits its static brick
+           wall onto its own layer so it can repaint only when it changes;
+           nothing here is static, because the formation sways every frame, so
+           a second layer would be a cache that always misses. -->
+      <div class="field__stack" id="field-stack">
+        <canvas id="play-canvas" class="layer" role="img"
+                aria-label="Hivebreak playfield"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel panel--stats" aria-label="Statistics">
+    <dl class="stats">
+      <div class="stat">
+        <dt class="stat__key">Score</dt>
+        <dd class="stat__value stat__value--lead" id="stat-score">0</dd>
+      </div>
+      <div class="stat">
+        <dt class="stat__key">Stage</dt>
+        <dd class="stat__value" id="stat-stage">1</dd>
+      </div>
+      <div class="stat">
+        <dt class="stat__key">Ships</dt>
+        <dd class="stat__value">
+          <span class="lives" id="stat-lives" role="img" aria-label="3 ships left"></span>
+        </dd>
+      </div>
+    </dl>
+    <p class="badge" id="badge" hidden></p>
+    <div class="panel__actions">
+      <button class="btn btn--ghost" id="btn-pause" type="button">Pause</button>
+      <button class="btn btn--ghost" id="btn-settings" type="button">Settings</button>
+      <a class="btn btn--ghost" href="about/">About</a>
+      <a class="btn btn--ghost" href="leaderboard/">Leaderboard</a>
+      <a class="btn btn--ghost" href="../../">Arcade</a>
+    </div>
+  </section>
+
+  <!-- On-screen controls. Shown on coarse-pointer (touch) devices; hidden on
+       desktop where the mouse and keyboard are used. Every target is >= 48px.
+
+       The arrows carry data-axis and Fire carries data-fire, not data-action:
+       all three are SUSTAINED, and the shared button panel only knows how to
+       dispatch discrete actions. See js/games/hivebreak/input/touch.js.
+
+       Dragging the playfield is the primary touch control and auto-fire is on
+       by default, so this cluster is the fallback for anyone who turns either
+       off. -->
+  <nav class="controls" id="controls" aria-label="Touch controls">
+    <div class="controls__cluster controls__cluster--fly">
+      <button class="cbtn cbtn--fly cbtn--left" type="button" data-axis="-1" aria-label="Fly left">◀</button>
+      <button class="cbtn cbtn--fly cbtn--fire" type="button" data-fire="1" aria-label="Fire">Fire</button>
+      <button class="cbtn cbtn--fly cbtn--right" type="button" data-axis="1" aria-label="Fly right">▶</button>
+    </div>
+  </nav>
+
+</main>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="overlay__card" role="dialog" aria-modal="true"
+       aria-labelledby="overlay-title" id="overlay-card">
+    <h1 class="overlay__title" id="overlay-title">Hivebreak</h1>
+    <p class="overlay__body" id="overlay-body"></p>
+    <div class="overlay__actions" id="overlay-actions"></div>
+  </div>
+</div>
+
+<p class="sr-only" role="status" aria-live="polite" id="live-region"></p>
+
+<!-- Classic script, and it must load before the module: js/shared/net/
+     leaderboard.js reads window.supabase at module top level. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module" src="../../js/games/hivebreak/main.js"></script>
+</body>
+</html>
