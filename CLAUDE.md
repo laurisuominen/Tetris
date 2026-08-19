@@ -48,7 +48,7 @@ with the account). Every run mints a fresh email and tag, so it is re-runnable.
 ```bash
 supabase start
 supabase functions serve        # the suite calls four of them, not just one
-node test/e2e-accounts.mjs      # 48 checks; needs the local stack up
+node test/e2e-accounts.mjs      # 52 checks; needs the local stack up
 ```
 
 On Docker Desktop for macOS the CLI may hang silently with no output and no
@@ -676,24 +676,51 @@ on `player_achievements` SUCCEEDS. `*` fails on `profiles` and `leaderboard`
 because their grants WITHHOLD a column, not because the grants are
 column-level. This table withholds nothing, so there is no 42501 to assert.
 
-**Hivebreak is deliberately NOT in `SCORE_TIERS`, and that is the design
-working rather than an omission.** It ships with a leaderboard and earns
-`first-score`, `plays-*`, `days-*`, `top-ten` and `rank-one` from its first
-submission, but has no score ladder of its own. Two consequences, both wanted:
+**Hivebreak shipped without a score ladder and gained one four days later
+(2026-08-19). Both halves of that were deliberate and the sequence is the
+point.** It launched with a leaderboard and earned only the arcade-wide badges,
+because there was no play history to measure thresholds from and CLAUDE.md
+forbids inventing them. `record_play` accumulated its plays and bests the whole
+time — it is keyed by `(user_id, game_id)` and knows nothing about the
+catalogue — so adding the ladder awarded retroactively from counters already
+collected. That is exactly what "stats are the source of truth" buys.
 
-- `all-three` / Arcade Tourist reads `Object.keys(SCORE_TIERS)` directly, so
-  leaving Hivebreak out means nobody's in-progress badge silently got harder
-  the day a fourth game shipped.
-- `record_play` is keyed by `(user_id, game_id)` and knows nothing about the
-  catalogue, so `player_stats` has been accumulating Hivebreak plays and bests
-  since launch. Adding its three tiers later awards them retroactively.
+Adding it also widened `all-three` / Arcade Tourist to four games, which is the
+documented intent. **Check who holds it before widening again:** at the time
+there was one account and it already held the badge, so nobody was
+disadvantaged. That cost rises with every account that has not yet earned it.
 
-That is precisely the case "a badge added later awards itself from counters
-that have been accumulating all along" was built for. The alternative was
-inventing three thresholds for a game with no players, which the paragraph
-below explicitly forbids. Set them from `player_stats` once there is history.
-`test/badges.test.js` already covers the shape of this — see *"awards no ladder
-for a game it does not know"*.
+**A badge unlock is irreversible, and the asymmetry should drive every
+threshold decision.** A row in `player_achievements` is permanent, so:
+
+- A threshold set too **LOW** cannot be undone. Everyone who cleared it keeps it.
+- A threshold set too **HIGH** is fixed by lowering it, and awards retroactively.
+
+So when the data is thin, err high. Hivebreak's were set to the top of the
+defensible range for exactly this reason.
+
+**Hivebreak's thresholds are SIMULATED, not measured from players, and that is
+a weaker standard than the other three.** The live board had four rows from one
+player. The numbers instead come from playing the DOM-free core headlessly at
+several bot skill levels and taking best-of-N — because a badge keys off
+`player_stats.best_score`, not a single run. The full table, the validation
+against the one human data point, and the caveats are in
+`supabase/functions/_shared/badges.js`. Replace them with a real per-player read
+once there is history.
+
+**Those thresholds are coupled to the difficulty tuning.** Measured 2026-08-19:
+a median run is ~35 seconds and no simulated player of any skill passed stage 5.
+If Hivebreak is ever made less punishing, scores rise and the tiers become
+trivial — revisit them *in the same change*, before more accounts earn them.
+
+**One bug found while measuring, worth remembering as a shape.** `MAX_DIVERS`
+capped enemies *per sortie* rather than *concurrently*. A sortie leaves every
+`DIVE_INTERVAL_S` (2.6s at stage 1, less later) while a dive path takes ~3.3s to
+fly, so sorties overlapped by construction and pressure compounded without
+limit — 7 enemies airborne against a constant that said 4. A constant whose name
+promises a bound that nothing enforces is the shape to watch for. Fixed, and
+`test/hivebreak.test.js` now asserts the concurrent count directly; that test
+was confirmed to fail against the old code.
 
 **The per-game score thresholds are measured, not derived, and the derivation
 is in the file.** Read from the live board 2026-08-15 and chosen so bronze and
