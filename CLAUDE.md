@@ -132,6 +132,23 @@ boundary, or in a real browser window.
   needing the opposite behaviour from the same concept is exactly why it is not
   shared.
 
+  **`js/shared/achievements/badgeShelf.js` was edited on 2026-08-19, and the
+  distinction matters.** Its `GAME_SECTIONS` was a hard-coded list of three
+  games, so when Hivebreak's score ladder was added its three badges rendered
+  NOWHERE — while the shelf's own count line still said "of 22". A player would
+  have owned three badges the UI could never show them, with nothing in the
+  console to say why. That is game-BLIND, not game-agnostic: the same defect
+  `leaderboard.js` had before Snake, and the fix is the same in spirit — derive
+  the sections from the catalogue the module already imports, so a fifth game
+  needs no edit at all.
+
+  This does NOT weaken the claim above. Adding the GAME touched no shared file;
+  the shelf only broke when its CATALOGUE grew, which is a badge change. The
+  lesson is narrower and worth carrying: *a list in one module that has to track
+  a list in another, with nothing enforcing it, is a bug waiting for the next
+  addition.* `test/badges.test.js` now asserts every badge lands in a section,
+  and that test was confirmed to fail against the hard-coded list.
+
   If you find yourself wanting another exception, the bar is "shared code cannot
   express this at all", not "this would be convenient".
   **Accounts added `js/shared/net/{client,auth}.js` and

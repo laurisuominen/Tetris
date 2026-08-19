@@ -364,4 +364,4 @@ export function evaluate(stats, run) {
 
 /* Exported for the tests, which assert the catalogue against the thresholds
    rather than against a second copy of them. */
-export { SCORE_TIERS, PLAYS_TIERS, DAYS_TIERS, TOP_TEN, LEET_SCORE };
+export { SCORE_TIERS, GAME_TITLES, PLAYS_TIERS, DAYS_TIERS, TOP_TEN, LEET_SCORE };

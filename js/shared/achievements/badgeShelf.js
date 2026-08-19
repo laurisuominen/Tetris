@@ -21,17 +21,30 @@
  */
 
 import { el } from '../util/dom.js';
-import { BADGES, badgeFor, bestTier } from '../../../supabase/functions/_shared/badges.js';
+import {
+  BADGES, badgeFor, bestTier, SCORE_TIERS, GAME_TITLES
+} from '../../../supabase/functions/_shared/badges.js';
 
 /** The glyph every tier uses. Colour carries the tier; shape carries "badge". */
 const MARK = '●';
 
-/** Section headings, in the order the shelf shows them. */
-const GAME_SECTIONS = [
+/**
+ * Section headings, in the order the shelf shows them.
+ *
+ * DERIVED from the catalogue, not listed. This was three hard-coded rows once,
+ * and when Hivebreak's ladder was added its three badges silently vanished from
+ * the shelf — while the count line above them still read "of 22", so a player
+ * had three badges the UI would never show them and no way to tell why. A list
+ * that has to track another list, with nothing enforcing it, is the same defect
+ * `js/shared/net/leaderboard.js` had before Snake: game-BLIND rather than
+ * game-agnostic. Deriving it is the fix, and it needs no argument because this
+ * module already imports the catalogue.
+ *
+ * test/badges.test.js asserts every badge lands in exactly one section.
+ */
+export const GAME_SECTIONS = [
   { game: null, title: 'Arcade' },
-  { game: 'tetris', title: 'Tetris' },
-  { game: 'snake', title: 'Snake' },
-  { game: 'breakout', title: 'Breakout' }
+  ...Object.keys(SCORE_TIERS).map((id) => ({ game: id, title: GAME_TITLES[id] ?? id }))
 ];
 
 function earnedDate(value) {
