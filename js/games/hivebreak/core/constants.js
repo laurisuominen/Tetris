@@ -168,8 +168,27 @@ export const DIVE_INTERVAL_FLOOR_S = 0.75;
 /** How much of the interval each stage removes. */
 export const DIVE_INTERVAL_DECAY = 0.06;
 
-/** How many enemies leave together on a sortie. */
+/**
+ * Hard cap on how many enemies may be OUT OF FORMATION at once.
+ *
+ * Concurrent, not per-sortie, and the distinction is the whole difficulty
+ * curve. This was a per-sortie count first, which sounds equivalent and is not:
+ * a sortie fires every DIVE_INTERVAL_S (2.6s at stage 1, less later) while a
+ * dive path takes about 3.3s to fly, so sorties overlap BY CONSTRUCTION and
+ * pressure compounds without limit. Measured over 60 simulated runs before the
+ * fix: 7 divers in the air against a constant that said 4, median run length
+ * 33 seconds, and no run past stage 4 at any skill level.
+ *
+ * A beaming boss counts against this too — it is holding station over the
+ * player, which is not less dangerous than a pass.
+ */
 export const MAX_DIVERS = 4;
+
+/**
+ * How many leave together when a sortie goes, before the concurrent cap trims
+ * it. Kept below MAX_DIVERS so a single sortie cannot fill the sky on its own.
+ */
+export const SORTIE_SIZE = 3;
 
 /** Tiles per second along a dive path. */
 export const DIVE_SPEED = 6.2;
