@@ -128,6 +128,34 @@ const GAMES: Record<string, { maxPointsPerSecond: number; maxScore: number }> = 
   // test/hivebreak.test.js asserts no enemy is worth more than
   // MAX_ENEMY_POINTS, which is the half of that a unit test can reach.
   hivebreak: { maxPointsPerSecond: 10_000, maxScore: 800_000 },
+
+  // Derived from js/games/chomp/core/{constants,scoring}.js:
+  //
+  //   ONE BOARD, played perfectly:
+  //     240 dots x 10 + 4 energizers x 50                    =  2,600
+  //     4 energizers x a full 200+400+800+1600 chain         = 12,000
+  //     2 fruit at the 5,000 maximum (levels 13+)            = 10,000
+  //                                                            ------
+  //                                                            24,600
+  //   MAX_LEVEL = 255 -> 24,600 x 255                         = 6,273,000
+  //                                                            -> cap 6,300,000
+  //
+  //   POINTS PER SECOND. The rate check is over the WHOLE session, so the bound
+  //   only has to exceed the best possible burst:
+  //     four ghosts chained on one energizer                  =  3,000
+  //     a 5,000 fruit eaten in the same second                =  5,000
+  //     dots at the eating speed, 87% of 7.5 tiles/s          =    ~65
+  //                                                            ------
+  //                                                            ~8,065
+  //   -> ceiling 10,000, which no sustained play can approach because a board
+  //      takes minutes and is worth at most 24,600.
+  //
+  // LOAD-BEARING CONSTANTS: MAX_LEVEL, the GHOST_CHAIN values, MAX_FRUIT_POINTS,
+  // and the pellet counts. test/chomp.test.js asserts maxBoardPoints() is 24,600
+  // and that a perfect board of pellets is 2,600, which is the half of this a
+  // unit test can reach. Raise MAX_LEVEL and this cap is silently too low, which
+  // rejects honest scores rather than failing loudly.
+  chomp: { maxPointsPerSecond: 10_000, maxScore: 6_300_000 },
 }
 
 // A session longer than a day is not a session; it is a tab left open, or a

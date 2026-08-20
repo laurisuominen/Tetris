@@ -1,0 +1,96 @@
+/**
+ * Settings panel.
+ *
+ * Built from classed elements (no inline styles) so the strict CSP needs no
+ * unsafe-inline.
+ *
+ * TWO SETTINGS HERE CHANGE WHAT A SCORE MEANS, and both say so: the starting
+ * level, and the ghost AI. Neither takes effect until the next game.
+ */
+
+import { el, on } from '../../../shared/util/dom.js';
+import { loadSettings, saveSettings } from '../storage/settingsStore.js';
+import { SPEEDS, SPEED_TABLE } from '../core/constants.js';
+
+export function createSettingsUI(overlays, applySettings) {
+  let currentSettings = loadSettings();
+  applySettings(currentSettings);
+
+  function row(labelText, control, note) {
+    const div = el('div', { className: 'settings-row' });
+    const label = el('label', { className: 'settings-row__label', text: labelText });
+    if (control.id) label.setAttribute('for', control.id);
+    div.appendChild(label);
+    div.appendChild(control);
+    if (note) div.appendChild(el('p', { className: 'settings-row__note', text: note }));
+    return div;
+  }
+
+  const checkbox = (id) => el('input', { attrs: { type: 'checkbox', id } });
+
+  function show() {
+    const form = el('div', { className: 'settings-form' });
+
+    const speedSelect = el('select', {
+      className: 'settings-control', attrs: { id: 'set-speed' }
+    });
+    for (const key of Object.keys(SPEEDS)) {
+      const { label, blurb } = SPEED_TABLE[key];
+      speedSelect.appendChild(el('option', {
+        text: `${label} — ${blurb}`,
+        attrs: { value: key }
+      }));
+    }
+    speedSelect.value = currentSettings.speed;
+
+    const aiCheck = checkbox('set-modern-ai');
+    aiCheck.checked = currentSettings.modernAI;
+
+    const motionSelect = el('select', {
+      className: 'settings-control', attrs: { id: 'set-motion' }
+    });
+    motionSelect.appendChild(el('option', { text: 'Auto', attrs: { value: 'auto' } }));
+    motionSelect.appendChild(el('option', { text: 'Off', attrs: { value: 'off' } }));
+    motionSelect.value = currentSettings.motion;
+
+    const hapticsCheck = checkbox('set-haptics');
+    hapticsCheck.checked = currentSettings.haptics;
+
+    const volInput = el('input', {
+      className: 'settings-control',
+      attrs: { type: 'range', min: '0', max: '1', step: '0.1', id: 'set-volume' }
+    });
+    volInput.value = String(currentSettings.volume);
+
+    form.appendChild(row('Starting level', speedSelect, 'Applies to your next game.'));
+    form.appendChild(row(
+      'Modern ghost AI', aiCheck,
+      'Off is arcade-accurate, including the two targeting bugs the classic patterns rely on. On corrects them, which makes the ghosts read your direction honestly — and breaks every known safe spot.'
+    ));
+    form.appendChild(row('Reduce motion', motionSelect));
+    form.appendChild(row('Volume', volInput));
+    form.appendChild(row('Haptics (vibration)', hapticsCheck));
+
+    const saveBtn = el('button', { text: 'Save', className: 'btn', attrs: { type: 'button' } });
+    const cancelBtn = el('button', { text: 'Cancel', className: 'btn btn--ghost', attrs: { type: 'button' } });
+
+    on(saveBtn, 'click', () => {
+      currentSettings = {
+        motion: motionSelect.value,
+        volume: parseFloat(volInput.value),
+        haptics: hapticsCheck.checked,
+        modernAI: aiCheck.checked,
+        speed: speedSelect.value
+      };
+      saveSettings(currentSettings);
+      applySettings(currentSettings);
+      overlays.close();
+    });
+
+    on(cancelBtn, 'click', () => overlays.close());
+
+    overlays.open('settings', { title: 'Settings', body: form, buttons: [saveBtn, cancelBtn] });
+  }
+
+  return { show, getSettings: () => currentSettings };
+}

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#111318">
+<meta name="description" content="About Chomp — the four ghosts, how each one hunts, and the rules behind them.">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+<title>About — Chomp</title>
+<link rel="stylesheet" href="../../../css/tokens.css">
+<link rel="stylesheet" href="../../../css/pages.css">
+</head>
+<body>
+<main class="page">
+
+  <nav class="page__nav">
+    <a class="link link--home" href="../">Back to game</a>
+    <a class="link" href="../leaderboard/">Leaderboard</a>
+    <a class="link" href="../../../">Arcade</a>
+  </nav>
+
+  <h1 class="page__title">About</h1>
+  <p class="page__lead">
+    Chomp, built from scratch in vanilla JavaScript — no frameworks, no build
+    step, no dependencies. It installs to your home screen and plays fully
+    offline.
+  </p>
+
+  <h2>Eat everything</h2>
+  <p>
+    There are 244 things to eat: 240 dots worth 10 each, and four large
+    energizers worth 50. Clear the board and the next one starts, a little
+    faster. You have three lives, and a fourth at 10,000 points.
+  </p>
+
+  <h2>The four ghosts are four different programs</h2>
+  <p>
+    This is the part worth knowing. All four ghosts move by exactly the same
+    rule — at every junction, take the turn that ends up closest to <em>my
+    target tile</em>, and never turn back on yourself. Everything that makes
+    them feel like characters comes from the single question of where that
+    target is:
+  </p>
+  <ul>
+    <li><strong>Red</strong> targets you. That is the whole program. He is
+      relentless and he is behind you.</li>
+    <li><strong>Pink</strong> targets four tiles <em>in front</em> of you, so she
+      arrives where you are going rather than where you are. Turn sharply and her
+      target lands behind her.</li>
+    <li><strong>Cyan</strong> is the strange one. Take the tile two ahead of you,
+      draw a line from Red to it, and double that line — that is his target. He
+      is harmless while Red is far away and vicious when Red is close. The two of
+      them pincer you without a single line of code that says so.</li>
+    <li><strong>Orange</strong> chases you exactly like Red until he gets within
+      eight tiles, then loses his nerve and runs for his corner — which brings
+      him back into range, so he does it again. He spends the game circling.</li>
+  </ul>
+
+  <h2>Scatter and chase</h2>
+  <p>
+    The ghosts do not hunt continuously. They alternate between chasing and
+    scattering to their own corners, on a fixed schedule that gets more hostile
+    each level: seven seconds of relief early on, then five, then effectively
+    none. When the phase changes every ghost reverses on the spot — which is
+    both a warning and an opportunity.
+  </p>
+  <p>
+    Eating an energizer turns them blue and edible, worth 200, 400, 800 and
+    1,600 for the first, second, third and fourth caught on the same energizer.
+    That is 3,000 per energizer, 12,000 a board, and it is most of a good score.
+    The blue time shrinks every level and by level 17 there is none at all — the
+    ghosts still turn around, but they never become edible again.
+  </p>
+
+  <h2>Two details that decide games</h2>
+  <ul>
+    <li><strong>Eating slows you down.</strong> You move slightly slower over a
+      dot than over bare floor. That is the only reason ghosts ever catch up, and
+      it is why a cleared corridor is an escape route.</li>
+    <li><strong>You corner better than they do.</strong> You can start a turn
+      slightly before the junction; ghosts must reach it first. Every corner you
+      take buys you a fraction of a tile, and that is how you survive the later
+      levels, where the ghosts are strictly faster than you are.</li>
+  </ul>
+  <p>
+    Red also gets faster as the board empties — twice per level, at thresholds
+    that arrive earlier the further you get. Late in a level he is quicker than
+    you and no longer scatters at all.
+  </p>
+
+  <h2>Controls</h2>
+  <ul>
+    <li><strong>Arrows</strong> or <strong>WASD</strong> — move</li>
+    <li><strong>P</strong> or <strong>Esc</strong> — pause</li>
+    <li><strong>Enter</strong> — start, or play again</li>
+  </ul>
+  <p>
+    On a touchscreen, swipe anywhere on the board or use the D-pad. Turns are
+    buffered: press before the junction and the turn happens as soon as it is
+    legal, so you never have to be frame-perfect at a corner.
+  </p>
+
+  <h2>Settings</h2>
+  <p>
+    <strong>Starting level</strong> changes where you begin — later levels are
+    faster with shorter scatters and less blue time. It applies to your next
+    game, because it changes what a score means.
+  </p>
+  <p>
+    <strong>Modern ghost AI</strong> is off by default, and that is deliberate.
+    The original had two arithmetic bugs in how Pink and Cyan look ahead: when
+    you face upward, their target also shifts to the left. Those bugs are the
+    reason several well-known safe spots exist. Turning this on corrects the
+    arithmetic — the ghosts then read your direction honestly, which is harder,
+    and none of the classic patterns work any more.
+  </p>
+
+  <h2>Notes</h2>
+  <p>
+    The maze is written out as text in the source, one character per tile, and
+    checked on load: 28 by 31, exactly 240 dots and 4 energizers. The ghosts'
+    target selection is a pure function of integers with no randomness in it at
+    all, which is why the same situation always produces the same chase — and
+    why it can be tested to the letter.
+  </p>
+  <p>
+    Scores are yours: local ones stay in this browser, and the global board only
+    ever sees a name and a number.
+  </p>
+
+  <p class="page__foot">
+    <a class="pagebtn" href="../">Play</a>
+  </p>
+
+</main>
+</body>
+</html>
