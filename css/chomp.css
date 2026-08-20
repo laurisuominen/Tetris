@@ -1,0 +1,197 @@
+/*
+ * Chomp page layout.
+ *
+ * Adapted from css/hivebreak.css — a slab holding a canvas stack plus a touch
+ * cluster that layout.css does not supply.
+ *
+ * ASPECT is 28/31, the maze's own tile ratio, and the slab width caps at 90cqh
+ * to match. Note the canvas shows 31 rows, not the 36 the simulation addresses:
+ * the top three and bottom two are score rows the arcade drew and this page puts
+ * in its own HUD panel instead. See js/games/chomp/render/geometry.js.
+ *
+ * The cluster is a D-PAD rather than two arrows and a button. A maze needs four
+ * discrete directions and a diagonal-free cross is the only shape that gives
+ * them without ambiguity under a thumb.
+ */
+
+.app {
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+  padding: var(--sp-5) var(--sp-4);
+  gap: var(--sp-4);
+  display: grid;
+  align-items: center;
+  justify-content: center;
+
+  /* Wide default: board on the left, stats alongside. Both tracks are bounded
+     so neither can be inflated by its own contents. */
+  grid-template-columns: minmax(0, 1fr) var(--panel-w);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: "field stats";
+}
+
+.panel--stats { grid-area: stats; align-self: start; }
+
+.field {
+  grid-area: field;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  /* Establishes the query container the cq units below resolve against. Size
+     containment is safe here precisely because the track is already definite. */
+  container-type: size;
+}
+
+.field__slab {
+  width: min(100cqw, 90cqh);
+  aspect-ratio: 28 / 31;
+  padding: var(--sp-2);
+  background: var(--slab-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3), var(--shadow-glow);
+  backdrop-filter: blur(2px);
+}
+
+/* Both canvases occupy the same grid cell, z-ordered by DOM order. They are
+   absolutely positioned by the renderer, which also pins their CSS box to the
+   snapped fit — so nothing in here can stretch them off their whole pixels. */
+.field__stack {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--well-bg);
+
+  /* Load-bearing for the pointer control, not just for zoom suppression: the
+     paddle follows pointermove across this element, and without it a drag
+     scrolls the page instead. Scoped here so dialogs stay scrollable. */
+  touch-action: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: none;             /* the paddle IS the cursor */
+}
+
+.field__stack > .layer {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+}
+
+/* Hidden on desktop; the touch layout below reveals it. layout.css normally
+   supplies this default, and Chomp does not load layout.css. */
+.controls { display: none; }
+
+/* --- Touch layout --------------------------------------------------------- */
+
+/* Narrow OR portrait OR coarse-pointer, so a landscape tablet still gets
+   on-screen controls rather than a keyboard-only desktop layout it cannot
+   drive. Stats across the top, board in the middle, controls at the bottom. */
+@media (max-width: 900px), (orientation: portrait), (pointer: coarse) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "stats"
+      "field"
+      "controls";
+    padding: var(--sp-2);
+    gap: var(--sp-2);
+  }
+
+  .controls { grid-area: controls; display: flex; justify-content: center; }
+
+  .field__slab { padding: var(--sp-1); }
+
+  /* A finger is the paddle here, and hiding the system cursor on a touch
+     device does nothing useful while breaking a stylus. */
+  .field__stack { cursor: auto; }
+}
+
+/* --- Control cluster ------------------------------------------------------ */
+
+/* Arrows either side of Launch. Dragging on the board is the primary control
+   and these are the fallback, so they are laid out for a two-thumb grip: the
+   arrows at the outer edges where thumbs rest, Launch in the middle where it
+   is hard to hit by accident mid-rally. */
+.controls__cluster--dpad {
+  grid-template-columns: repeat(3, minmax(3.25rem, 4.5rem));
+  grid-template-rows: repeat(2, minmax(3.25rem, 4.5rem));
+  grid-template-areas:
+    ".    up    ."
+    "left down right";
+  align-items: center;
+  justify-items: center;
+}
+
+.cbtn--up    { grid-area: up; }
+.cbtn--left  { grid-area: left; }
+.cbtn--down  { grid-area: down; }
+.cbtn--right { grid-area: right; }
+
+.cbtn--dpad {
+  color: var(--text-primary);
+  font-size: var(--fs-lg);
+  width: 100%;
+}
+
+.cbtn--fire {
+  font-size: var(--fs-sm);
+  letter-spacing: 0.04em;
+}
+
+/* --- Settings notes ------------------------------------------------------- */
+
+/* Speed changes what a score means, so it carries a line of explanation.
+   components.css lays a settings row out as label | control with no room for a
+   third child, so the row is allowed to wrap and the note takes the whole of
+   the second line. */
+.settings-row { flex-wrap: wrap; }
+
+.settings-row__note {
+  flex-basis: 100%;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+/* --- Lives ---------------------------------------------------------------- */
+
+/* Lives read as pips rather than a number: three of something is faster to
+   count than to parse, and it is the one stat a player checks mid-rally. */
+.lives {
+  display: flex;
+  gap: var(--sp-1);
+  align-items: center;
+  min-height: 1rem;
+}
+
+.lives__pip {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--ball, #f8fafc);
+  box-shadow: 0 0 6px color-mix(in oklab, var(--ball, #f8fafc) 60%, transparent);
+}
+
+.lives__pip--spent {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  box-shadow: none;
+}
+
+/* --- Very short viewports (landscape phones) ------------------------------ */
+
+@media (max-height: 520px) {
+  .app { padding: var(--sp-1); gap: var(--sp-1); }
+  .panel__label { display: none; }
+
+  .controls__cluster--dpad {
+    grid-template-columns: repeat(3, minmax(3rem, 4.5rem));
+  }
+}

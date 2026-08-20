@@ -1,7 +1,7 @@
 # CLAUDE.md
 
-Browser-based casual arcade (Tetris, Snake, Breakout and Hivebreak) on GitHub
-Pages, with a Supabase backend for the global leaderboard and player accounts.
+Browser-based casual arcade (Tetris, Snake, Breakout, Hivebreak and Chomp) on
+GitHub Pages, with a Supabase backend for the global leaderboard and player accounts.
 These are project standards — follow them on every task.
 
 The code is proprietary — see `LICENSE.md`. The repo is public because GitHub
@@ -121,6 +121,13 @@ boundary, or in a real browser window.
   - SPRITES, the first `drawImage` in the repo. Baking pixel data into a canvas
     is a `render/` concern and stayed inside `js/games/hivebreak/render/`.
 
+  **Chomp is the fifth, and it also needed zero shared edits** — including its
+  28x36 coordinate system, which is WIDER THAN THE MAZE on purpose (the arcade's
+  scatter targets sit outside the board at y=0 and y=34, so a 31-row origin would
+  silently move every corner). `fitGrid` took the crop as arguments like
+  everything else, and the one row offset lives in the game's own
+  `render/geometry.js`.
+
   What did not generalise went into the game's own `input/` directory each time,
   following the precedent Snake set with its four-way swipe: pointer-driven
   paddle control and held-axis buttons in `js/games/breakout/input/`, and
@@ -197,7 +204,7 @@ js/
                     network
     util/           dom, emitter, rng
   games/<name>/     one directory per game, mirroring the shared layout
-                    tetris/, snake/, breakout/ and hivebreak/ exist; use
+                    tetris/, snake/, breakout/, hivebreak/ and chomp/ exist; use
                     breakout/ or hivebreak/ as the reference for a new game.
                     hivebreak/ additionally shows the sprite path: render/
                     spriteData.js is pixel art written as text, baked once into
@@ -397,8 +404,8 @@ Current state: a single non-partitioned `leaderboard` table **with a `game_id`
 column** (`text NOT NULL DEFAULT 'tetris'`, added by
 `migrations/20260727000000_add_game_id.sql`), indexed
 `(game_id, score DESC) INCLUDE (player_name, created_at)`. One `submit-score`
-Edge Function, which validates `game_id` against an allowlist. Four games write
-to it: `tetris`, `snake`, `breakout` and `hivebreak`.
+Edge Function, which validates `game_id` against an allowlist. Five games write
+to it: `tetris`, `snake`, `breakout`, `hivebreak` and `chomp`.
 
 `migrations/20260731000000_accounts.sql` added `profiles`, `name_reports`, and
 two columns on `leaderboard`: a nullable `user_id` and `is_verified`, a **stored
@@ -731,6 +738,15 @@ the question per player. This is NOT a licence to invent the next number by
 hand; Tetris's anti-cheat ceiling below is still the example of what that
 produces.
 
+**A note on Chomp's rendering, and a promotion candidate.** Chomp draws its
+actors with canvas PATHS rather than baked pixel sprites: a circle with a wedge
+removed and a dome with a wavy hem are shapes paths render better than a 12x12
+grid, at any size, with no bake step. Hivebreak's `render/sprites.js` therefore
+still has exactly ONE caller. If a sixth game genuinely needs pixel art, that
+module is the thing to promote to `js/shared/render/` — it would then have two
+callers, which is the bar this file sets for promoting anything. Do not promote
+it speculatively.
+
 ## Anti-cheat
 
 The client is untrusted. Obfuscation and WASM are not security. Clients never write
@@ -749,6 +765,7 @@ Ceilings are now per-game, in a `GAMES` map in the function:
 | `breakout` | 7,000 | 810,000 | Yes — max ball speed × brick height × capped multiplier, shown in-code |
 | `tetris` | 5000 | 10,000,000 | **No.** Inherited from the single-game version. Still owed a derivation. |
 | `hivebreak` | 10,000 | 800,000 | Yes — fire cooldown × barrels × top enemy value, and wave value × `MAX_STAGE`, shown in-code |
+| `chomp` | 10,000 | 6,300,000 | Yes — one perfect board is 24,600 (pellets + four full ghost chains + two 5,000 fruit) × `MAX_LEVEL`, shown in-code |
 
 Do not copy another game's numbers, and do not treat Tetris's as a precedent —
 it is the thing that needs fixing, not the pattern to follow.

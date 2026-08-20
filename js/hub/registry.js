@@ -47,6 +47,15 @@ export const GAMES = Object.freeze([
     blurb: 'A hive that flies in, forms up, then comes at you a few at a time. Shoot the ones that are moving — they are worth double.',
     mark: 'HV',
     accent: 'var(--piece-i)'
+  },
+  {
+    id: 'chomp',
+    title: 'Chomp',
+    path: 'games/chomp/',
+    status: 'playable',
+    blurb: 'Clear the maze while four ghosts hunt you four different ways. One chases, one cuts you off, one reads the others, and one keeps losing its nerve.',
+    mark: 'CH',
+    accent: 'var(--piece-o)'
   }
 ]);
 

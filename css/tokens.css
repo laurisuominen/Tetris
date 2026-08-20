@@ -82,6 +82,30 @@
   --hb-beam:      #22d3ee;  /* tractor beam cone               */
   --hb-enemy-shot: #f43f5e; /* enemy bullet                    */
 
+  /* Chomp — the maze, the player and the four ghosts.
+
+     The ghost colours are the one place in this arcade where the hue IS the
+     information: a player identifies which ghost is closing purely by colour,
+     at speed, in peripheral vision. They are therefore the four most separated
+     hues available and are NOT reused from the tetromino set, which would put
+     Blinky and the Z-piece red side by side on the hub.
+
+     Frightened blue is deliberately far from Inky's cyan — mistaking an edible
+     ghost for a live one is the most expensive misread in the game. */
+  --ch-wall:       #2563eb;  /* maze walls, the classic blue     */
+  --ch-door:       #f9a8d4;  /* ghost-house door                 */
+  --ch-dot:        #fbcfa4;  /* pellets                          */
+  --ch-energizer:  #ffffff;  /* the four big ones                */
+  --ch-player:     #facc15;  /* Chomp himself                    */
+  --ch-blinky:     #ef4444;  /* red    — the pursuer             */
+  --ch-pinky:      #f9a8d4;  /* pink   — the ambusher            */
+  --ch-inky:       #22d3ee;  /* cyan   — the unpredictable one   */
+  --ch-clyde:      #fb923c;  /* orange — the coward              */
+  --ch-fright:     #1e3a8a;  /* frightened body, deep blue       */
+  --ch-fright-lit: #f8fafc;  /* frightened, flashing white       */
+  --ch-eyes:       #f8fafc;  /* eaten: eyes only                 */
+  --ch-pupil:      #1d4ed8;
+
   /* Accents */
   --accent:        oklch(0.72 0.15 250);
   --accent-strong: oklch(0.80 0.17 250);

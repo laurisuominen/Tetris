@@ -15,6 +15,7 @@ import './engine.test.js';
 import './snake.test.js';
 import './breakout.test.js';
 import './hivebreak.test.js';
+import './chomp.test.js';
 import './gamerTag.test.js';
 import './scoresStore.test.js';
 import './topScores.test.js';
