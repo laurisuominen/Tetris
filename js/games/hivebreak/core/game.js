@@ -28,6 +28,7 @@ import {
   DUAL_BULLET_CAP, BULLET_SPEED, ENEMY_BULLET_SPEED, MAX_ENEMY_BULLETS,
   BULLET_HALF_W, BULLET_HALF_H, STAGE_CLEAR_MS, RESPAWN_MS,
   DIVE_INTERVAL_S, DIVE_INTERVAL_FLOOR_S, DIVE_INTERVAL_DECAY, MAX_DIVERS,
+  SORTIE_SIZE,
   DIVE_FIRE_RATE, BEAM_INTERVAL_S, BEAM_DURATION_MS, BEAM_ROW_Y,
   SPEEDS, SPEED_FACTOR, KIND
 } from './constants.js';
@@ -302,16 +303,25 @@ function scheduleDives(state, dt, events) {
   if (state.diveTimerS > 0) return;
   state.diveTimerS = diveInterval(state);
 
-  const { enemies, ship } = state;
+  const { enemies } = state;
 
-  // Count candidates first so the pick is uniform over what is actually parked.
+  // Count what is parked AND what is already out. The second number is the one
+  // that matters: without it sorties stack, because the interval between them
+  // is shorter than a dive takes to fly. See MAX_DIVERS.
   let parked = 0;
+  let airborne = 0;
   for (let i = 0; i < enemies.length; i += 1) {
-    if (enemies[i].alive && enemies[i].state === ENEMY_STATE.IN_FORMATION) parked += 1;
+    const e = enemies[i];
+    if (!e.alive) continue;
+    if (e.state === ENEMY_STATE.IN_FORMATION) parked += 1;
+    else if (isDiving(e)) airborne += 1;
   }
   if (parked === 0) return;
 
-  const wanted = 1 + Math.floor(state.rand() * MAX_DIVERS);
+  const room = MAX_DIVERS - airborne;
+  if (room <= 0) return;   // sky is full; the timer has already been reset
+
+  const wanted = Math.min(1 + Math.floor(state.rand() * SORTIE_SIZE), room, parked);
   let sent = 0;
 
   for (let i = 0; i < enemies.length && sent < wanted; i += 1) {

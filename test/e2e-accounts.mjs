@@ -29,6 +29,16 @@
  * The key below is the CLI's fixed local publishable key — not a secret, and it
  * authenticates against nothing but 127.0.0.1. See js/shared/net/client.js.
  */
+/*
+ * The catalogue is imported rather than retyped. This suite hard-coded three
+ * games once and went red the day a fourth ladder was added — the assertion was
+ * still RIGHT ("Arcade Tourist needs every game"), it just had the list baked
+ * in. Deriving it from SCORE_TIERS is what makes the check survive game five.
+ * badges.js is import-free plain .js, so Node loads the same file the Edge
+ * Function does.
+ */
+import { SCORE_TIERS } from '../supabase/functions/_shared/badges.js';
+
 const BASE = 'http://127.0.0.1:54321';
 const KEY = 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH';
 const MAIL = 'http://127.0.0.1:54324';
@@ -131,7 +141,23 @@ console.log('\n=== 4. Submit a score from each game as a signed-in player ===');
 // Badges unlocked per game, kept so the assertions below can be about the WHOLE
 // sequence rather than one call in isolation.
 const unlockedByGame = {};
-for (const [game, score] of [['tetris', 12000], ['snake', 400], ['breakout', 5000]]) {
+/*
+ * One score per game, chosen to sit at a known point on that game's ladder:
+ *   tetris    12,000 -> below bronze (50,000), so no score badge at all
+ *   snake        400 -> bronze (250) but not silver (550)
+ *   breakout   5,000 -> clears all three rungs
+ *   hivebreak  9,000 -> bronze (8,000) but not silver (14,000)
+ * A game in the catalogue with no entry here is a deliberate failure: it means
+ * a ladder shipped that this suite never exercises.
+ */
+const SCORES = { tetris: 12000, snake: 400, breakout: 5000, hivebreak: 9000 };
+const GAME_ORDER = Object.keys(SCORE_TIERS);
+const missingScores = GAME_ORDER.filter((g) => SCORES[g] === undefined);
+check('every game in the catalogue has a score to submit', missingScores.length === 0,
+  `no score defined for: ${missingScores.join(', ')}`);
+
+for (const game of GAME_ORDER) {
+  const score = SCORES[game];
   const r = await api('/functions/v1/submit-score', {
     token,
     body: { game_id: game, player_name: 'ZZZ', score, session_duration_seconds: 300 }
@@ -151,12 +177,13 @@ check('first submission unlocks On the Board',
 check('On the Board is not awarded twice',
   !unlockedByGame.snake.includes('first-score') && !unlockedByGame.breakout.includes('first-score'),
   `snake ${JSON.stringify(unlockedByGame.snake)} breakout ${JSON.stringify(unlockedByGame.breakout)}`);
-// Arcade Tourist needs every game in the catalogue, so it can only land on the
-// third one — and it must land there, not on the first or second.
-check('Arcade Tourist lands on the third game and not before',
-  unlockedByGame.breakout.includes('all-three')
-    && !unlockedByGame.tetris.includes('all-three')
-    && !unlockedByGame.snake.includes('all-three'),
+// Arcade Tourist needs EVERY game in the catalogue, so it can only land on the
+// last one submitted — and it must land there, not on any earlier one.
+const lastGame = GAME_ORDER[GAME_ORDER.length - 1];
+const earlierGames = GAME_ORDER.slice(0, -1);
+check(`Arcade Tourist lands on game ${GAME_ORDER.length} (${lastGame}) and not before`,
+  unlockedByGame[lastGame].includes('all-three')
+    && earlierGames.every((g) => !unlockedByGame[g].includes('all-three')),
   JSON.stringify(unlockedByGame));
 // 400 clears Snake's bronze (250) and not its silver (550); 5,000 clears all
 // three Breakout rungs; 12,000 clears none of Tetris's (bronze is 50,000).
@@ -164,6 +191,10 @@ check('snake 400 earns bronze only',
   unlockedByGame.snake.includes('score-snake-1')
     && !unlockedByGame.snake.includes('score-snake-2'),
   JSON.stringify(unlockedByGame.snake));
+check('hivebreak 9000 earns bronze only',
+  unlockedByGame.hivebreak.includes('score-hivebreak-1')
+    && !unlockedByGame.hivebreak.includes('score-hivebreak-2'),
+  JSON.stringify(unlockedByGame.hivebreak));
 check('breakout 5000 earns the whole ladder',
   ['score-breakout-1', 'score-breakout-2', 'score-breakout-3']
     .every((k) => unlockedByGame.breakout.includes(k)),
@@ -314,7 +345,17 @@ check('delete-account accepted', del.status === 200, `status ${del.status} ${del
 await new Promise((r) => setTimeout(r, 600));
 const after = await api(`/rest/v1/leaderboard?select=player_name,score,is_verified&player_name=eq.${TAG}`,
   { method: 'GET' });
-check('scores survive the deletion', (after.json?.length ?? 0) === 4, `${after.json?.length} rows`);
+/*
+ * Derived, not baked in. This was a literal 4 and went stale the moment a
+ * fourth game joined the catalogue — the same failure mode as the Arcade
+ * Tourist check above, and equally not a real regression. Rows written under
+ * this tag are: one per catalogue game (section 4), plus the deliberate repeat
+ * submission (section 4b). The anonymous run in section 5 is filed under a
+ * different name and is not counted here.
+ */
+const EXPECTED_ROWS = GAME_ORDER.length + 1;
+check('scores survive the deletion', (after.json?.length ?? 0) === EXPECTED_ROWS,
+  `${after.json?.length} rows, expected ${EXPECTED_ROWS}`);
 check('every surviving row flipped to unverified',
   after.json?.every((r) => r.is_verified === false),
   JSON.stringify(after.json));

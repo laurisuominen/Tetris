@@ -18,7 +18,7 @@ import {
   MAX_PLAYER_BULLETS, DUAL_BULLET_CAP, FIRE_COOLDOWN_MS, BULLET_SPEED,
   MAX_STAGE, STAGE_CLEAR_BONUS, RESCUE_BONUS, SPEEDS, SPEED_FACTOR,
   FORMATION_COLS, FORMATION_ROWS, BOSS_COLUMNS, ROW_KINDS, SHIP_HALF_W,
-  DUAL_OFFSET, SHIP_SPEED, BEAM_HALF_W, MAX_ENEMIES
+  DUAL_OFFSET, SHIP_SPEED, BEAM_HALF_W, MAX_ENEMIES, MAX_DIVERS, SORTIE_SIZE
 } from '../js/games/hivebreak/core/constants.js';
 import { bake, samplePath, headingAt, DIVE_PATHS, ENTRY_PATHS } from '../js/games/hivebreak/core/paths.js';
 import {
@@ -623,6 +623,31 @@ describe('game — the reducer', () => {
     expect(events.includes('captiveLost')).toBeTruthy();
     expect(events.includes('rescued')).toBeFalsy();
     expect(state.ship.dual).toBeFalsy();
+  });
+
+  it('never lets more than MAX_DIVERS be out of formation at once', () => {
+    // REGRESSION. This cap was per-sortie first, which is not the same thing:
+    // a sortie leaves every DIVE_INTERVAL_S (2.6s at stage 1, less later) while
+    // a dive path takes about 3.3s to fly, so sorties overlapped by
+    // construction and pressure compounded without limit. Measured before the
+    // fix: 7 enemies airborne against a constant that said 4.
+    const state = playing();
+    let peak = 0;
+    for (let i = 0; i < 60 * 90 && state.fsm === STATES.PLAYING; i += 1) {
+      step(state, FRAME, { firing: true });
+      let airborne = 0;
+      for (const e of state.enemies) if (e.alive && isDiving(e)) airborne += 1;
+      peak = Math.max(peak, airborne);
+    }
+    expect(peak).toBeLessThan(MAX_DIVERS + 1);
+    // And it must actually be exercised, or the assertion above proves nothing.
+    expect(peak).toBeGreaterThan(0);
+  });
+
+  it('keeps a single sortie under the concurrent cap', () => {
+    // SORTIE_SIZE below MAX_DIVERS is what stops one sortie filling the sky,
+    // which would make the cap technically held but the game unreadable.
+    expect(SORTIE_SIZE).toBeLessThan(MAX_DIVERS + 1);
   });
 
   it('costs a life when the beam takes the ship', () => {

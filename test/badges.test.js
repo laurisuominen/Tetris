@@ -11,6 +11,7 @@
  */
 
 import { describe, it, expect } from './harness.js';
+import { GAME_SECTIONS } from '../js/shared/achievements/badgeShelf.js';
 import {
   BADGES,
   badgeFor,
@@ -97,6 +98,33 @@ describe('badge catalogue', () => {
     // deploy. That must render as nothing, not throw.
     expect(badgeFor('not-a-badge')).toBeNull();
     expect(badgeFor(undefined)).toBeNull();
+  });
+});
+
+describe('the shelf covers the catalogue', () => {
+  // REGRESSION. GAME_SECTIONS was a hard-coded list of three games. When a
+  // fourth ladder was added its badges rendered nowhere, while the shelf's own
+  // count line still said "of 22" — three badges a player owned and could never
+  // see. The sections are derived now; this is what keeps them derived.
+  it('gives every badge exactly one section', () => {
+    const sectionGames = GAME_SECTIONS.map((s) => s.game);
+    const homeless = BADGES.filter((b) => !sectionGames.includes(b.game ?? null));
+    expect(homeless.map((b) => b.key)).toEqual([]);
+  });
+
+  it('has a section for every game with a ladder', () => {
+    for (const gameId of ALL_GAMES) {
+      expect(`${gameId}:${GAME_SECTIONS.some((s) => s.game === gameId)}`).toBe(`${gameId}:true`);
+    }
+  });
+
+  it('names each section, so no heading renders blank', () => {
+    const unnamed = GAME_SECTIONS.filter((s) => typeof s.title !== 'string' || s.title === '');
+    expect(unnamed.map((s) => s.game)).toEqual([]);
+  });
+
+  it('leads with the arcade-wide section', () => {
+    expect(GAME_SECTIONS[0].game).toBeNull();
   });
 });
 

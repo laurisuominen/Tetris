@@ -97,17 +97,73 @@ const TOP_TEN = 10;
  * once player_stats has enough history to ask the question per player, which is
  * exactly what that table is for.
  */
+/*
+ * HIVEBREAK, added 2026-08-19, and measured DIFFERENTLY — which is the whole
+ * caveat and why it gets its own block rather than a row above.
+ *
+ * The three games above were measured from the live board. Hivebreak had four
+ * rows on it, all from one player in their first session, so there was no
+ * distribution to read. It was deliberately shipped without a ladder for
+ * exactly this reason; these numbers close that gap with the best evidence
+ * available, which is NOT the same standard.
+ *
+ * WHAT WAS ACTUALLY MEASURED. The game's core is deterministic and DOM-free,
+ * so it can be played headlessly. Bots at three skill levels (aim error,
+ * reaction delay, whether they dodge) played it 40 players x N sessions each,
+ * and the statistic taken was BEST OF N — because a badge keys off
+ * player_stats.best_score, not off a single run. Distribution of best-ever
+ * score:
+ *
+ *   sessions   p10      p30      median   p70      p90      max
+ *   5           7,020    9,660   10,720   11,590   14,870   18,200
+ *   15         10,310   10,870   11,710   13,970   15,230   17,710
+ *   40         10,950   11,710   14,140   14,870   18,240   24,080
+ *
+ * Chosen against the 5-15 session columns, where most players will sit:
+ *
+ *   8,000 -> roughly 75% of players    (bronze, the "you played it" rung)
+ *  14,000 -> roughly 30%               (silver)
+ *  22,000 -> under 10%, and above the p90 of even a 40-session player (gold)
+ *
+ * Ratios are 1 : 1.75 : 2.75, in line with Tetris's 1 : 1.5 : 2.2 and Snake's
+ * 1 : 2.2 : 3.2.
+ *
+ * THE SIMULATION IS VALIDATED, ONCE, AGAINST A HUMAN. The one real player's
+ * best after four sessions was 11,040; the model's best-of-5 median is 10,720.
+ * That is a single point of agreement, not a calibration.
+ *
+ * THREE CAVEATS, and the third is the one that bites:
+ *
+ *   1. BOTS ARE NOT PLAYERS. They never learn, never camp a safe lane, and
+ *      never panic. Treat these as an order of magnitude, not a percentile.
+ *   2. Thresholds were set to the TOP of the defensible range on purpose. A
+ *      badge unlock is a permanent row in player_achievements, so a threshold
+ *      set too LOW cannot be undone — everyone who cleared it keeps it — while
+ *      one set too HIGH is fixed by lowering it, and awards retroactively from
+ *      counters player_stats has been keeping all along.
+ *   3. THESE NUMBERS ARE COUPLED TO THE DIFFICULTY TUNING. Measured the same
+ *      day: a median run lasts about 35 seconds and no simulated player of any
+ *      skill got past stage 5. If Hivebreak is ever made less punishing, scores
+ *      rise and these tiers become trivial — revisit them IN THE SAME CHANGE,
+ *      before more accounts earn them, because that is the direction that
+ *      cannot be walked back.
+ *
+ * Replace all of this with a real per-player read from player_stats once there
+ * is history. That is what the table is for.
+ */
 const SCORE_TIERS = {
   tetris:   [50_000, 75_000, 110_000],
   snake:    [250, 550, 800],
-  breakout: [100, 300, 425]
+  breakout: [100, 300, 425],
+  hivebreak: [8_000, 14_000, 22_000]
 };
 
 /** Display names for the per-game badges. Keyed by the same ids as SCORE_TIERS. */
 const GAME_TITLES = {
   tetris: 'Tetris',
   snake: 'Snake',
-  breakout: 'Breakout'
+  breakout: 'Breakout',
+  hivebreak: 'Hivebreak'
 };
 
 /** The hidden one. Exactly, not at least — that is the joke. */
@@ -364,4 +420,4 @@ export function evaluate(stats, run) {
 
 /* Exported for the tests, which assert the catalogue against the thresholds
    rather than against a second copy of them. */
-export { SCORE_TIERS, PLAYS_TIERS, DAYS_TIERS, TOP_TEN, LEET_SCORE };
+export { SCORE_TIERS, GAME_TITLES, PLAYS_TIERS, DAYS_TIERS, TOP_TEN, LEET_SCORE };
