@@ -37,7 +37,7 @@
 
 // Bump this on every shipped change. Assets are cache-first, so a stale cache
 // name keeps serving old files to anyone who already has the site installed.
-const CACHE = 'arcade-v14';
+const CACHE = 'arcade-v15';
 
 // Cache mode for every request whose response we intend to store. Bypasses the
 // browser HTTP cache entirely, so what lands in the cache is what the origin is
