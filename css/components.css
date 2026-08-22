@@ -483,3 +483,60 @@
   .panel { padding: var(--sp-2); }
   .panel__actions .btn { padding: 2px var(--sp-2); }
 }
+
+/* --- Icon buttons --------------------------------------------------------- */
+
+/**
+ * A square, glyph-only button for one binary control. The mute toggle in every
+ * game's action row is the only user today.
+ *
+ * It is deliberately smaller than the .btn pills beside it: mute is a set-and-
+ * forget control, not something reached for mid-run, so it earns less space
+ * than Pause or Leaderboard. The coarse-pointer floor below is what stops
+ * "small" becoming "unhittable on a phone".
+ *
+ * PLACED AFTER THE SHORT-WINDOW MEDIA QUERIES ON PURPOSE. Those set
+ * `.panel__actions .btn { padding: ... }`, which outranks a bare `.btn--icon`
+ * on specificity and would put pill padding back on a square button. Matching
+ * their specificity and coming later is what keeps the box square at every
+ * viewport height. Moving this block up silently breaks it on a short laptop
+ * window, where nothing errors — the button just goes oblong.
+ */
+.panel__actions .btn--icon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  line-height: 0;
+}
+
+.btn--icon svg {
+  display: block;
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+/* Which half of the icon shows is driven entirely by the pressed state, so the
+   DOM built in js/shared/ui/muteButton.js never changes after boot. */
+.btn--icon[aria-pressed="false"] .mute-btn__cross,
+.btn--icon[aria-pressed="true"] .mute-btn__waves {
+  display: none;
+}
+
+/* Muted is worth seeing at a glance rather than reading, so the pressed state
+   is a filled chip instead of the ghost outline. */
+.btn--icon[aria-pressed="true"] {
+  background: var(--surface-2);
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+/* The 48px touch floor from CLAUDE.md. A control that is easy to hit by
+   accident mid-run is worse than one that is slightly harder to find, so this
+   stops at the floor rather than matching the D-pad. */
+@media (pointer: coarse) {
+  .panel__actions .btn--icon { width: 3rem; height: 3rem; }
+  .btn--icon svg { width: 1.35rem; height: 1.35rem; }
+}

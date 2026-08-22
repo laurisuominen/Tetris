@@ -29,6 +29,8 @@ import { createTouch } from './input/touch.js';
 import { createHaptics } from '../../shared/input/haptics.js';
 import { createSynth } from '../../shared/audio/synth.js';
 import { createSfx } from './audio/sfx.js';
+import { withMute } from '../../shared/audio/mute.js';
+import { createMuteButton, bindMuteKey } from '../../shared/ui/muteButton.js';
 import { registerServiceWorker } from '../../shared/pwa.js';
 import { qs, setText, on } from '../../shared/util/dom.js';
 
@@ -102,7 +104,15 @@ const settingsUI = createSettingsUI(overlays, (settings) => {
   renderer.invalidateBoard(); // ensures layers redraw with new colors
 });
 
-createSfx(engine, synth, settingsUI.getSettings);
+/*
+ * Mute wraps the settings getter rather than touching audio/sfx.js: that
+ * module already bails at volume 0, so `withMute` handing it a zeroed copy is
+ * the entire mechanism. The player's own volume is left untouched underneath,
+ * which is what makes unmuting restore the level they chose.
+ */
+createSfx(engine, synth, withMute(settingsUI.getSettings));
+createMuteButton(qs('#btn-mute'));
+bindMuteKey();
 
 // Touch is wired after settings so swipe gestures can honour the swipe toggle.
 createTouch(engine, settingsUI.getSettings);

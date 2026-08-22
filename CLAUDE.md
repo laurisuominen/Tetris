@@ -164,6 +164,29 @@ boundary, or in a real browser window.
   infrastructure and `net/` is where this project already keeps the network
   boundary. The game-agnostic test still holds: no game-specific value is
   imported into any of them.
+
+  **The arcade-wide MUTE added `js/shared/audio/mute.js` and
+  `js/shared/ui/muteButton.js` on 2026-08-21, and that is the same kind of
+  thing** — cross-cutting UI, not a game. The alternative was a `muted` flag in
+  each of the five `storage/settingsStore.js` files plus a toggle in each of the
+  five `ui/settings.js`, which is exactly the shape the badge-shelf note above
+  warns about: five copies of one switch that nothing keeps in step.
+
+  Two design points are load-bearing and easy to undo by accident:
+
+  - **Mute is NOT "write 0 into volume".** Volume is per game and answers "how
+    loud is this one"; mute is one switch across the arcade and answers "any
+    sound at all". Writing zero into the slider would destroy the player's
+    level, so unmuting would come back silent. `withMute` hands the sfx layer a
+    zeroed COPY and leaves the stored settings untouched.
+  - **No sfx module was edited, and none needs to be.** All five already open
+    with `const getVolume = () => getSettings().volume` and return early at
+    zero, so wrapping the getter in `main.js` is the entire mechanism. If a new
+    game's audio reads volume some other way, wrap it the same way rather than
+    teaching `sfx.js` about mute.
+
+  `test/mute.test.js` covers both, including the unmute-restores-volume case
+  that is the whole reason for the split.
 - Existing tests. Don't delete, skip, or loosen an assertion to make a suite green;
   if a test is wrong, say so and stop.
 - The gamer tag blocklist tests. The Scunthorpe cases exist to constrain the
@@ -193,8 +216,9 @@ js/
     render/         dpr, geometry (grid-size agnostic)
     input/          keyboard, touch, autorepeat, haptics
     storage/        storage, createScoresStore(key)
-    ui/             overlay shell, a11y announcer, procedural backgrounds
-    audio/          synth
+    ui/             overlay shell, a11y announcer, procedural backgrounds,
+                    muteButton.js (the toggle every game page carries)
+    audio/          synth, mute.js (arcade-wide mute + withMute)
     account/        session.js — localStorage display cache, NO network
     achievements/   badgeShelf.js (pure DOM; imports the catalogue from
                     supabase/functions/_shared/badges.js), boardMarks.js

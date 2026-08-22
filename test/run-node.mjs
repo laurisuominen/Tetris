@@ -20,6 +20,7 @@ import './gamerTag.test.js';
 import './scoresStore.test.js';
 import './topScores.test.js';
 import './badges.test.js';
+import './mute.test.js';
 
 const GREEN = '[32m';
 const RED = '[31m';
